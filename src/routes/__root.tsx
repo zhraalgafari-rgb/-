@@ -1,7 +1,9 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth";
+import { ThemeProvider } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
+import { PinLockGate } from "@/components/PinLockGate";
 
 function NotFoundComponent() {
   return (
@@ -24,12 +26,14 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#1e40af" },
       { title: "دفترك - إدارة الديون والمصاريف" },
       { name: "description", content: "تطبيق احترافي لإدارة الديون والمصاريف وتتبع المعاملات المالية بسهولة." },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" },
@@ -54,9 +58,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <AuthProvider>
-      <Outlet />
-      <Toaster position="top-center" richColors />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <PinLockGate>
+          <Outlet />
+        </PinLockGate>
+        <Toaster position="top-center" richColors />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

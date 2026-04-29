@@ -13,7 +13,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppRemindersRouteImport } from './routes/app.reminders'
+import { Route as AppExpensesRouteImport } from './routes/app.expenses'
 import { Route as AppCurrenciesRouteImport } from './routes/app.currencies'
+import { Route as AppCategoriesRouteImport } from './routes/app.categories'
+import { Route as AppBudgetsRouteImport } from './routes/app.budgets'
 import { Route as AppPersonIdRouteImport } from './routes/app.person.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -36,9 +42,39 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRemindersRoute = AppRemindersRouteImport.update({
+  id: '/reminders',
+  path: '/reminders',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExpensesRoute = AppExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCurrenciesRoute = AppCurrenciesRouteImport.update({
   id: '/currencies',
   path: '/currencies',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCategoriesRoute = AppCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBudgetsRoute = AppBudgetsRouteImport.update({
+  id: '/budgets',
+  path: '/budgets',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPersonIdRoute = AppPersonIdRouteImport.update({
@@ -51,14 +87,26 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/budgets': typeof AppBudgetsRoute
+  '/app/categories': typeof AppCategoriesRoute
   '/app/currencies': typeof AppCurrenciesRoute
+  '/app/expenses': typeof AppExpensesRoute
+  '/app/reminders': typeof AppRemindersRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
   '/app/person/$id': typeof AppPersonIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/budgets': typeof AppBudgetsRoute
+  '/app/categories': typeof AppCategoriesRoute
   '/app/currencies': typeof AppCurrenciesRoute
+  '/app/expenses': typeof AppExpensesRoute
+  '/app/reminders': typeof AppRemindersRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/settings': typeof AppSettingsRoute
   '/app': typeof AppIndexRoute
   '/app/person/$id': typeof AppPersonIdRoute
 }
@@ -67,7 +115,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/budgets': typeof AppBudgetsRoute
+  '/app/categories': typeof AppCategoriesRoute
   '/app/currencies': typeof AppCurrenciesRoute
+  '/app/expenses': typeof AppExpensesRoute
+  '/app/reminders': typeof AppRemindersRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
   '/app/person/$id': typeof AppPersonIdRoute
 }
@@ -77,17 +131,40 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/app/budgets'
+    | '/app/categories'
     | '/app/currencies'
+    | '/app/expenses'
+    | '/app/reminders'
+    | '/app/reports'
+    | '/app/settings'
     | '/app/'
     | '/app/person/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app/currencies' | '/app' | '/app/person/$id'
+  to:
+    | '/'
+    | '/auth'
+    | '/app/budgets'
+    | '/app/categories'
+    | '/app/currencies'
+    | '/app/expenses'
+    | '/app/reminders'
+    | '/app/reports'
+    | '/app/settings'
+    | '/app'
+    | '/app/person/$id'
   id:
     | '__root__'
     | '/'
     | '/app'
     | '/auth'
+    | '/app/budgets'
+    | '/app/categories'
     | '/app/currencies'
+    | '/app/expenses'
+    | '/app/reminders'
+    | '/app/reports'
+    | '/app/settings'
     | '/app/'
     | '/app/person/$id'
   fileRoutesById: FileRoutesById
@@ -128,11 +205,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/reports': {
+      id: '/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/reminders': {
+      id: '/app/reminders'
+      path: '/reminders'
+      fullPath: '/app/reminders'
+      preLoaderRoute: typeof AppRemindersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/expenses': {
+      id: '/app/expenses'
+      path: '/expenses'
+      fullPath: '/app/expenses'
+      preLoaderRoute: typeof AppExpensesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/currencies': {
       id: '/app/currencies'
       path: '/currencies'
       fullPath: '/app/currencies'
       preLoaderRoute: typeof AppCurrenciesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/categories': {
+      id: '/app/categories'
+      path: '/categories'
+      fullPath: '/app/categories'
+      preLoaderRoute: typeof AppCategoriesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/budgets': {
+      id: '/app/budgets'
+      path: '/budgets'
+      fullPath: '/app/budgets'
+      preLoaderRoute: typeof AppBudgetsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/person/$id': {
@@ -146,13 +265,25 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppBudgetsRoute: typeof AppBudgetsRoute
+  AppCategoriesRoute: typeof AppCategoriesRoute
   AppCurrenciesRoute: typeof AppCurrenciesRoute
+  AppExpensesRoute: typeof AppExpensesRoute
+  AppRemindersRoute: typeof AppRemindersRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppPersonIdRoute: typeof AppPersonIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppBudgetsRoute: AppBudgetsRoute,
+  AppCategoriesRoute: AppCategoriesRoute,
   AppCurrenciesRoute: AppCurrenciesRoute,
+  AppExpensesRoute: AppExpensesRoute,
+  AppRemindersRoute: AppRemindersRoute,
+  AppReportsRoute: AppReportsRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppPersonIdRoute: AppPersonIdRoute,
 }
