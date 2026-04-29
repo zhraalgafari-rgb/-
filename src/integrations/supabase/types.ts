@@ -14,7 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      currencies: {
+        Row: {
+          created_at: string
+          id: string
+          is_base: boolean
+          name: string
+          rate: number
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_base?: boolean
+          name: string
+          rate?: number
+          symbol?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_base?: boolean
+          name?: string
+          rate?: number
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      people: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency_id: string
+          details: string | null
+          direction: string
+          id: string
+          person_id: string
+          transaction_date: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency_id: string
+          details?: string | null
+          direction: string
+          id?: string
+          person_id: string
+          transaction_date?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency_id?: string
+          details?: string | null
+          direction?: string
+          id?: string
+          person_id?: string
+          transaction_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
