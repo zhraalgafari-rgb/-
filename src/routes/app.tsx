@@ -1,14 +1,14 @@
-import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { Wallet, Home, Coins, LogOut, Loader2 } from "lucide-react";
+import { Wallet, Loader2, Bell } from "lucide-react";
+import { BottomNav } from "@/components/BottomNav";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
 function AppLayout() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const loc = useLocation();
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -22,10 +22,8 @@ function AppLayout() {
     );
   }
 
-  const isHome = loc.pathname === "/app" || loc.pathname === "/app/";
-
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       <header className="bg-gradient-hero text-white sticky top-0 z-30 shadow-elevated">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/app" className="flex items-center gap-2 font-bold">
@@ -34,9 +32,9 @@ function AppLayout() {
             </div>
             دفترك
           </Link>
-          <button onClick={() => signOut()} className="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="خروج">
-            <LogOut className="size-5" />
-          </button>
+          <Link to="/app/reminders" className="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="التذكيرات">
+            <Bell className="size-5" />
+          </Link>
         </div>
       </header>
 
@@ -44,17 +42,7 @@ function AppLayout() {
         <Outlet />
       </main>
 
-      {/* Bottom nav */}
-      <nav className="fixed bottom-0 inset-x-0 bg-card/95 backdrop-blur border-t shadow-elevated z-30">
-        <div className="max-w-3xl mx-auto grid grid-cols-2 h-16">
-          <Link to="/app" className={`flex flex-col items-center justify-center gap-1 text-xs transition-colors ${isHome ? "text-primary" : "text-muted-foreground"}`}>
-            <Home className="size-5" /> الرئيسية
-          </Link>
-          <Link to="/app/currencies" className={`flex flex-col items-center justify-center gap-1 text-xs transition-colors ${loc.pathname.includes("currencies") ? "text-primary" : "text-muted-foreground"}`}>
-            <Coins className="size-5" /> العملات
-          </Link>
-        </div>
-      </nav>
+      <BottomNav />
     </div>
   );
 }
