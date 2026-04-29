@@ -13,3 +13,12 @@ export const fmtTime = (d: string | Date) => {
   const date = typeof d === "string" ? new Date(d) : d;
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 };
+
+const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+export const fmtMonthAr = (d: Date) => `${AR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+
+export const monthRange = (date = new Date()) => {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1, 0, 0, 0);
+  return { start, end };
+};
