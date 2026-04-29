@@ -16,6 +16,16 @@ import { toast } from "sonner";
 interface Person { id: string; name: string }
 interface Currency { id: string; name: string; is_base: boolean }
 
+interface EditingTx {
+  id: string;
+  person_id: string;
+  amount: number;
+  direction: string;
+  currency_id: string;
+  details: string | null;
+  transaction_date: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -23,9 +33,10 @@ interface Props {
   currencies: Currency[];
   onSuccess: () => void;
   defaultPersonId?: string;
+  editing?: EditingTx | null;
 }
 
-export function AddTransactionDialog({ open, onOpenChange, people, currencies, onSuccess, defaultPersonId }: Props) {
+export function AddTransactionDialog({ open, onOpenChange, people, currencies, onSuccess, defaultPersonId, editing }: Props) {
   const { user } = useAuth();
   const [personId, setPersonId] = useState<string>("");
   const [newName, setNewName] = useState("");
@@ -34,19 +45,29 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
   const [details, setDetails] = useState("");
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [currencyId, setCurrencyId] = useState<string>("");
+  const [date, setDate] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    if (editing) {
+      setPersonId(editing.person_id);
+      setNewName("");
+      setAmount(String(editing.amount));
+      setDetails(editing.details ?? "");
+      setDirection(editing.direction as any);
+      setCurrencyId(editing.currency_id);
+      setDate(new Date(editing.transaction_date).toISOString().slice(0, 16));
+    } else {
       setPersonId(defaultPersonId ?? "");
       setNewName("");
-      setAmount("");
-      setDetails("");
+      setAmount(""); setDetails("");
       setDirection("credit");
       const base = currencies.find((c) => c.is_base) ?? currencies[0];
       setCurrencyId(base?.id ?? "");
+      setDate(new Date().toISOString().slice(0, 16));
     }
-  }, [open, defaultPersonId, currencies]);
+  }, [open, defaultPersonId, currencies, editing]);
 
   const submit = async () => {
     if (!user) return;
@@ -56,23 +77,27 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
     let pid = personId;
     setBusy(true);
     try {
-      if (!pid) {
+      if (!pid && !editing) {
         const name = newName.trim();
         if (!name) { toast.error("اختر شخصاً أو أدخل اسماً جديداً"); setBusy(false); return; }
         const { data, error } = await supabase.from("people").insert({ name, user_id: user.id }).select("id").single();
         if (error) throw error;
         pid = data.id;
       }
-      const { error: te } = await supabase.from("transactions").insert({
+      const payload = {
         user_id: user.id,
         person_id: pid,
         currency_id: currencyId,
         amount: amt,
         direction,
         details: details.trim() || null,
-      });
+        transaction_date: new Date(date).toISOString(),
+      };
+      const { error: te } = editing
+        ? await supabase.from("transactions").update(payload).eq("id", editing.id)
+        : await supabase.from("transactions").insert(payload);
       if (te) throw te;
-      toast.success("تمت الإضافة");
+      toast.success(editing ? "تم التعديل" : "تمت الإضافة");
       onSuccess();
       onOpenChange(false);
     } catch (e: any) {
@@ -88,38 +113,42 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-right">إضافة معاملة</DialogTitle>
+          <DialogTitle className="text-right">{editing ? "تعديل معاملة" : "إضافة معاملة"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>الشخص</Label>
-            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                  {selectedPerson ? selectedPerson.name : (newName || "اختر أو أضف اسماً جديداً")}
-                  <ChevronDown className="size-4 opacity-60" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="ابحث أو اكتب اسماً جديداً..." value={newName} onValueChange={(v) => { setNewName(v); setPersonId(""); }} />
-                  <CommandList>
-                    <CommandEmpty>
-                      <div className="text-sm">سيُنشأ شخص جديد باسم "{newName}"</div>
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {people.map((p) => (
-                        <CommandItem key={p.id} value={p.name} onSelect={() => { setPersonId(p.id); setNewName(""); setPickerOpen(false); }}>
-                          <Check className={`size-4 ${personId === p.id ? "opacity-100" : "opacity-0"}`} />
-                          {p.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            {editing ? (
+              <Input value={selectedPerson?.name ?? ""} disabled />
+            ) : (
+              <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    {selectedPerson ? selectedPerson.name : (newName || "اختر أو أضف اسماً جديداً")}
+                    <ChevronDown className="size-4 opacity-60" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="ابحث أو اكتب اسماً جديداً..." value={newName} onValueChange={(v) => { setNewName(v); setPersonId(""); }} />
+                    <CommandList>
+                      <CommandEmpty>
+                        <div className="text-sm">سيُنشأ شخص جديد باسم "{newName}"</div>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {people.map((p) => (
+                          <CommandItem key={p.id} value={p.name} onSelect={() => { setPersonId(p.id); setNewName(""); setPickerOpen(false); }}>
+                            <Check className={`size-4 ${personId === p.id ? "opacity-100" : "opacity-0"}`} />
+                            {p.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -139,8 +168,13 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
           </div>
 
           <div className="space-y-1.5">
+            <Label>التاريخ والوقت</Label>
+            <Input type="datetime-local" dir="ltr" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+
+          <div className="space-y-1.5">
             <Label>التفاصيل (اختياري)</Label>
-            <Textarea rows={2} value={details} onChange={(e) => setDetails(e.target.value)} placeholder="مثلاً: ماء ديتر وكاله" />
+            <Textarea rows={2} value={details} onChange={(e) => setDetails(e.target.value)} placeholder="مثلاً: ماء ديتر وكاله" maxLength={500} />
           </div>
 
           <RadioGroup value={direction} onValueChange={(v) => setDirection(v as any)} className="grid grid-cols-2 gap-2">
@@ -155,7 +189,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
           </RadioGroup>
 
           <Button onClick={submit} disabled={busy} className="w-full bg-gradient-primary text-primary-foreground shadow-glow">
-            {busy ? "..." : "حفظ المعاملة"}
+            {busy ? "..." : editing ? "حفظ التعديلات" : "حفظ المعاملة"}
           </Button>
         </div>
       </DialogContent>

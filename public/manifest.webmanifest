@@ -1,0 +1,12 @@
+{
+  "name": "دفترك",
+  "short_name": "دفترك",
+  "description": "إدارة الديون والمصاريف باحترافية",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e40af",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": []
+}

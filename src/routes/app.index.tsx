@@ -22,6 +22,7 @@ function AppHome() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
+  const [filter, setFilter] = useState<"all" | "credit" | "debit">("all");
 
   const load = async () => {
     if (!user) return;
@@ -31,9 +32,9 @@ function AppHome() {
       supabase.from("transactions").select("*"),
       supabase.from("currencies").select("*").order("is_base", { ascending: false }),
     ]);
-    setPeople(p ?? []);
-    setTxs(t ?? []);
-    setCurrencies(c ?? []);
+    setPeople((p ?? []) as Person[]);
+    setTxs((t ?? []) as Tx[]);
+    setCurrencies((c ?? []) as Currency[]);
     setLoading(false);
   };
 
@@ -41,7 +42,6 @@ function AppHome() {
 
   const baseCurrency = currencies.find((c) => c.is_base) ?? currencies[0];
 
-  // balance per person in base currency (credit positive = "له", debit negative = "عليه")
   const personBalances = useMemo(() => {
     const map = new Map<string, { net: number; count: number }>();
     for (const t of txs) {
@@ -64,38 +64,50 @@ function AppHome() {
     return { owe, owed };
   }, [personBalances]);
 
-  const filtered = people.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
-
-  const onAdded = async () => { await load(); };
+  const filtered = people.filter((p) => {
+    if (q && !p.name.toLowerCase().includes(q.toLowerCase())) return false;
+    const b = personBalances.get(p.id);
+    if (filter === "credit") return (b?.net ?? 0) > 0.001;
+    if (filter === "debit") return (b?.net ?? 0) < -0.001;
+    return true;
+  });
 
   return (
     <div className="space-y-4">
-      {/* Summary card */}
       <div className="bg-gradient-primary text-primary-foreground rounded-2xl p-4 shadow-elevated">
         <div className="text-xs opacity-80 mb-2">إجمالي الأرصدة ({baseCurrency?.name ?? "محلي"})</div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
+          <button onClick={() => setFilter(filter === "credit" ? "all" : "credit")} className="bg-white/10 backdrop-blur rounded-xl p-3 text-right hover:bg-white/15 transition-colors">
             <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
               <TrendingUp className="size-3.5" /> لك
             </div>
             <div className="font-black text-lg">{fmtMoney(totals.owed)}</div>
-          </div>
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
+          </button>
+          <button onClick={() => setFilter(filter === "debit" ? "all" : "debit")} className="bg-white/10 backdrop-blur rounded-xl p-3 text-right hover:bg-white/15 transition-colors">
             <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
               <TrendingDown className="size-3.5" /> عليك
             </div>
             <div className="font-black text-lg">{fmtMoney(totals.owe)}</div>
-          </div>
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="text-[11px] opacity-80 text-center">الصافي: {fmtMoney(totals.owed - totals.owe)}</div>
+          <div className="text-[11px] opacity-80 text-center">{people.length} شخص · {txs.length} معاملة</div>
         </div>
       </div>
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن شخص..." className="pr-10" />
       </div>
 
-      {/* People list */}
+      {filter !== "all" && (
+        <div className="flex items-center justify-between text-xs px-1">
+          <span className="text-muted-foreground">تصفية: {filter === "credit" ? "له فقط" : "عليه فقط"}</span>
+          <button onClick={() => setFilter("all")} className="text-primary font-semibold">إلغاء التصفية</button>
+        </div>
+      )}
+
       {loading ? (
         <div className="py-20 flex justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
       ) : filtered.length === 0 ? (
@@ -129,7 +141,6 @@ function AppHome() {
         </div>
       )}
 
-      {/* FAB */}
       <button
         onClick={() => setOpenAdd(true)}
         className="fixed bottom-20 left-4 z-20 size-14 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
@@ -143,7 +154,7 @@ function AppHome() {
         onOpenChange={setOpenAdd}
         people={people}
         currencies={currencies}
-        onSuccess={onAdded}
+        onSuccess={load}
       />
     </div>
   );
