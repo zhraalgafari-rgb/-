@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppCurrenciesRouteImport } from './routes/app.currencies'
 import { Route as AppPersonIdRouteImport } from './routes/app.person.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -35,6 +36,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCurrenciesRoute = AppCurrenciesRouteImport.update({
+  id: '/currencies',
+  path: '/currencies',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPersonIdRoute = AppPersonIdRouteImport.update({
   id: '/person/$id',
   path: '/person/$id',
@@ -45,12 +51,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/currencies': typeof AppCurrenciesRoute
   '/app/': typeof AppIndexRoute
   '/app/person/$id': typeof AppPersonIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/currencies': typeof AppCurrenciesRoute
   '/app': typeof AppIndexRoute
   '/app/person/$id': typeof AppPersonIdRoute
 }
@@ -59,15 +67,29 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/currencies': typeof AppCurrenciesRoute
   '/app/': typeof AppIndexRoute
   '/app/person/$id': typeof AppPersonIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/auth' | '/app/' | '/app/person/$id'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/currencies'
+    | '/app/'
+    | '/app/person/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app' | '/app/person/$id'
-  id: '__root__' | '/' | '/app' | '/auth' | '/app/' | '/app/person/$id'
+  to: '/' | '/auth' | '/app/currencies' | '/app' | '/app/person/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/auth'
+    | '/app/currencies'
+    | '/app/'
+    | '/app/person/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +128,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/currencies': {
+      id: '/app/currencies'
+      path: '/currencies'
+      fullPath: '/app/currencies'
+      preLoaderRoute: typeof AppCurrenciesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/person/$id': {
       id: '/app/person/$id'
       path: '/person/$id'
@@ -117,11 +146,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCurrenciesRoute: typeof AppCurrenciesRoute
   AppIndexRoute: typeof AppIndexRoute
   AppPersonIdRoute: typeof AppPersonIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCurrenciesRoute: AppCurrenciesRoute,
   AppIndexRoute: AppIndexRoute,
   AppPersonIdRoute: AppPersonIdRoute,
 }
