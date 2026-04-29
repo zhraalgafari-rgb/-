@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, TrendingUp, TrendingDown, Loader2, UserPlus } from "lucide-react";
 import { fmtMoney } from "@/lib/format";
-import { toast } from "sonner";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 
 export const Route = createFileRoute("/app/")({ component: AppHome });
