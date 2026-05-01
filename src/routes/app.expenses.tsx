@@ -5,16 +5,18 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Plus, Loader2, ChevronRight, ChevronLeft, Pencil, Trash2, Search, Wallet } from "lucide-react";
+import { Plus, ChevronRight, ChevronLeft, Pencil, Trash2, Search, Wallet } from "lucide-react";
 import { fmtMoney, fmtDate, fmtMonthAr, monthRange } from "@/lib/format";
 import { IconByName } from "@/components/IconByName";
 import { ExpenseDialog } from "@/components/ExpenseDialog";
+import { ListSkeleton } from "@/components/Skeleton";
+import { EmptyState } from "@/components/EmptyState";
 import { toast } from "sonner";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 export const Route = createFileRoute("/app/expenses")({ component: ExpensesPage });
 
-interface Expense { id: string; amount: number; category_id: string | null; currency_id: string; note: string | null; expense_date: string }
+interface Expense { id: string; amount: number; category_id: string | null; currency_id: string; note: string | null; expense_date: string; receipt_path: string | null }
 interface Category { id: string; name: string; icon: string; color: string }
 interface Currency { id: string; name: string; rate: number; is_base: boolean }
 interface Budget { id: string; category_id: string | null; amount: number; currency_id: string }
@@ -159,15 +161,14 @@ function ExpensesPage() {
       </div>
 
       {loading ? (
-        <div className="py-16 flex justify-center"><Loader2 className="size-5 animate-spin text-primary" /></div>
+        <ListSkeleton rows={4} />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="size-16 mx-auto rounded-2xl bg-secondary flex items-center justify-center mb-3">
-            <Wallet className="size-8 text-primary" />
-          </div>
-          <h3 className="font-bold mb-1">لا توجد مصاريف</h3>
-          <p className="text-sm text-muted-foreground">ابدأ بتسجيل أول مصروف لك هذا الشهر</p>
-        </div>
+        <EmptyState
+          icon={Wallet}
+          title={expenses.length === 0 ? "لا توجد مصاريف هذا الشهر" : "لا توجد نتائج"}
+          description={expenses.length === 0 ? "ابدأ بتسجيل أول مصروف وراقب إنفاقك بسهولة." : "جرّب كلمة بحث أخرى."}
+          variant="compact"
+        />
       ) : (
         <div className="space-y-2">
           {filtered.map((e) => {
