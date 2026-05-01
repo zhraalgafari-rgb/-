@@ -4,6 +4,7 @@ import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
 import { PinLockGate } from "@/components/PinLockGate";
+import { OnboardingGate } from "@/components/OnboardingGate";
 
 function NotFoundComponent() {
   return (
@@ -61,7 +62,9 @@ function RootComponent() {
     <ThemeProvider>
       <AuthProvider>
         <PinLockGate>
-          <Outlet />
+          <OnboardingGate>
+            <Outlet />
+          </OnboardingGate>
         </PinLockGate>
         <Toaster position="top-center" richColors />
       </AuthProvider>

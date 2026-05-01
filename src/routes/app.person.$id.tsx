@@ -2,7 +2,9 @@ import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-r
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { ArrowRight, Plus, Trash2, TrendingUp, TrendingDown, Loader2, Pencil, Share2, MessageCircle } from "lucide-react";
+import { ArrowRight, Plus, Trash2, TrendingUp, TrendingDown, Pencil, Share2, MessageCircle, Archive } from "lucide-react";
+import { ListSkeleton } from "@/components/Skeleton";
+import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -79,9 +81,16 @@ function PersonPage() {
     toast.success("تم الحذف"); load();
   };
 
+  const archivePerson = async () => {
+    if (!confirm(`أرشفة ${name}؟ (يمكن استعادتها لاحقاً)`)) return;
+    const { error } = await supabase.from("people").update({ is_archived: true }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("تمت الأرشفة"); nav({ to: "/app" });
+  };
+
   const delPerson = async () => {
-    if (txs.length > 0) return toast.error("لا يمكن الحذف — لديه معاملات");
-    if (!confirm(`حذف ${name}؟`)) return;
+    if (txs.length > 0) return toast.error("استخدم الأرشفة بدلاً من الحذف — لديه معاملات");
+    if (!confirm(`حذف ${name} نهائياً؟`)) return;
     const { error } = await supabase.from("people").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("تم الحذف"); nav({ to: "/app" });
@@ -133,7 +142,8 @@ function PersonPage() {
           <button onClick={share} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Share2 className="size-4" /></button>
           <button onClick={shareWhatsApp} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-success"><MessageCircle className="size-4" /></button>
           <button onClick={() => setEditName(true)} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="size-4" /></button>
-          <button onClick={delPerson} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-danger"><Trash2 className="size-4" /></button>
+          <button onClick={archivePerson} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary" title="أرشفة"><Archive className="size-4" /></button>
+          <button onClick={delPerson} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-danger" title="حذف"><Trash2 className="size-4" /></button>
         </div>
       </div>
 
@@ -149,9 +159,9 @@ function PersonPage() {
       </div>
 
       {loading ? (
-        <div className="py-20 flex justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>
+        <ListSkeleton rows={4} />
       ) : txs.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground text-sm">لا توجد معاملات بعد</div>
+        <EmptyState icon={Plus} title="لا توجد معاملات بعد" description="أضف أول معاملة لهذا الشخص." variant="compact" />
       ) : (
         <div className="space-y-2">
           {txs.map((t) => {

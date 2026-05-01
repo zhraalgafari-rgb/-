@@ -12,6 +12,8 @@ import { TrendingUp, TrendingDown, Check, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { AmountInput } from "@/components/AmountInput";
+import { evalExpr } from "@/lib/calc";
 
 interface Person { id: string; name: string }
 interface Currency { id: string; name: string; is_base: boolean }
@@ -71,8 +73,8 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
 
   const submit = async () => {
     if (!user) return;
-    const amt = parseFloat(amount);
-    if (!amt || amt <= 0) { toast.error("أدخل مبلغاً صحيحاً"); return; }
+    const amt = evalExpr(amount);
+    if (!isFinite(amt) || amt <= 0) { toast.error("أدخل مبلغاً صحيحاً"); return; }
     if (!currencyId) { toast.error("اختر العملة"); return; }
     let pid = personId;
     setBusy(true);
@@ -154,7 +156,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>المبلغ</Label>
-              <Input type="number" inputMode="decimal" dir="ltr" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+              <AmountInput value={amount} onChange={setAmount} />
             </div>
             <div className="space-y-1.5">
               <Label>العملة</Label>
