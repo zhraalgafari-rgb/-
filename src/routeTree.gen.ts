@@ -17,10 +17,12 @@ import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppRemindersRouteImport } from './routes/app.reminders'
 import { Route as AppRecurringRouteImport } from './routes/app.recurring'
+import { Route as AppInsightsRouteImport } from './routes/app.insights'
 import { Route as AppExpensesRouteImport } from './routes/app.expenses'
 import { Route as AppCurrenciesRouteImport } from './routes/app.currencies'
 import { Route as AppCategoriesRouteImport } from './routes/app.categories'
 import { Route as AppBudgetsRouteImport } from './routes/app.budgets'
+import { Route as AppArchiveRouteImport } from './routes/app.archive'
 import { Route as AppPersonIdRouteImport } from './routes/app.person.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -63,6 +65,11 @@ const AppRecurringRoute = AppRecurringRouteImport.update({
   path: '/recurring',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInsightsRoute = AppInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppExpensesRoute = AppExpensesRouteImport.update({
   id: '/expenses',
   path: '/expenses',
@@ -83,6 +90,11 @@ const AppBudgetsRoute = AppBudgetsRouteImport.update({
   path: '/budgets',
   getParentRoute: () => AppRoute,
 } as any)
+const AppArchiveRoute = AppArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPersonIdRoute = AppPersonIdRouteImport.update({
   id: '/person/$id',
   path: '/person/$id',
@@ -93,10 +105,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/archive': typeof AppArchiveRoute
   '/app/budgets': typeof AppBudgetsRoute
   '/app/categories': typeof AppCategoriesRoute
   '/app/currencies': typeof AppCurrenciesRoute
   '/app/expenses': typeof AppExpensesRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/recurring': typeof AppRecurringRoute
   '/app/reminders': typeof AppRemindersRoute
   '/app/reports': typeof AppReportsRoute
@@ -107,10 +121,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/archive': typeof AppArchiveRoute
   '/app/budgets': typeof AppBudgetsRoute
   '/app/categories': typeof AppCategoriesRoute
   '/app/currencies': typeof AppCurrenciesRoute
   '/app/expenses': typeof AppExpensesRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/recurring': typeof AppRecurringRoute
   '/app/reminders': typeof AppRemindersRoute
   '/app/reports': typeof AppReportsRoute
@@ -123,10 +139,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/app/archive': typeof AppArchiveRoute
   '/app/budgets': typeof AppBudgetsRoute
   '/app/categories': typeof AppCategoriesRoute
   '/app/currencies': typeof AppCurrenciesRoute
   '/app/expenses': typeof AppExpensesRoute
+  '/app/insights': typeof AppInsightsRoute
   '/app/recurring': typeof AppRecurringRoute
   '/app/reminders': typeof AppRemindersRoute
   '/app/reports': typeof AppReportsRoute
@@ -140,10 +158,12 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/app/archive'
     | '/app/budgets'
     | '/app/categories'
     | '/app/currencies'
     | '/app/expenses'
+    | '/app/insights'
     | '/app/recurring'
     | '/app/reminders'
     | '/app/reports'
@@ -154,10 +174,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/app/archive'
     | '/app/budgets'
     | '/app/categories'
     | '/app/currencies'
     | '/app/expenses'
+    | '/app/insights'
     | '/app/recurring'
     | '/app/reminders'
     | '/app/reports'
@@ -169,10 +191,12 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/app/archive'
     | '/app/budgets'
     | '/app/categories'
     | '/app/currencies'
     | '/app/expenses'
+    | '/app/insights'
     | '/app/recurring'
     | '/app/reminders'
     | '/app/reports'
@@ -245,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRecurringRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/insights': {
+      id: '/app/insights'
+      path: '/insights'
+      fullPath: '/app/insights'
+      preLoaderRoute: typeof AppInsightsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/expenses': {
       id: '/app/expenses'
       path: '/expenses'
@@ -273,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBudgetsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/archive': {
+      id: '/app/archive'
+      path: '/archive'
+      fullPath: '/app/archive'
+      preLoaderRoute: typeof AppArchiveRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/person/$id': {
       id: '/app/person/$id'
       path: '/person/$id'
@@ -284,10 +322,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppArchiveRoute: typeof AppArchiveRoute
   AppBudgetsRoute: typeof AppBudgetsRoute
   AppCategoriesRoute: typeof AppCategoriesRoute
   AppCurrenciesRoute: typeof AppCurrenciesRoute
   AppExpensesRoute: typeof AppExpensesRoute
+  AppInsightsRoute: typeof AppInsightsRoute
   AppRecurringRoute: typeof AppRecurringRoute
   AppRemindersRoute: typeof AppRemindersRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -297,10 +337,12 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppArchiveRoute: AppArchiveRoute,
   AppBudgetsRoute: AppBudgetsRoute,
   AppCategoriesRoute: AppCategoriesRoute,
   AppCurrenciesRoute: AppCurrenciesRoute,
   AppExpensesRoute: AppExpensesRoute,
+  AppInsightsRoute: AppInsightsRoute,
   AppRecurringRoute: AppRecurringRoute,
   AppRemindersRoute: AppRemindersRoute,
   AppReportsRoute: AppReportsRoute,
