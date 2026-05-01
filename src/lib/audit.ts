@@ -13,7 +13,7 @@ export async function logAudit(
       action,
       entity,
       entity_id: entityId ?? null,
-      metadata: metadata ?? null,
+      metadata: (metadata ?? null) as never,
     });
   } catch {
     // best-effort, do not surface to user
