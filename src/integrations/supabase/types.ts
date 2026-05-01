@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       budgets: {
         Row: {
           amount: number
@@ -116,6 +146,7 @@ export type Database = {
           expense_date: string
           id: string
           note: string | null
+          receipt_path: string | null
           user_id: string
         }
         Insert: {
@@ -126,6 +157,7 @@ export type Database = {
           expense_date?: string
           id?: string
           note?: string | null
+          receipt_path?: string | null
           user_id: string
         }
         Update: {
@@ -136,14 +168,17 @@ export type Database = {
           expense_date?: string
           id?: string
           note?: string | null
+          receipt_path?: string | null
           user_id?: string
         }
         Relationships: []
       }
       people: {
         Row: {
+          avatar_color: string | null
           created_at: string
           id: string
+          is_archived: boolean
           name: string
           notes: string | null
           phone: string | null
@@ -151,8 +186,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_color?: string | null
           created_at?: string
           id?: string
+          is_archived?: boolean
           name: string
           notes?: string | null
           phone?: string | null
@@ -160,8 +197,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_color?: string | null
           created_at?: string
           id?: string
+          is_archived?: boolean
           name?: string
           notes?: string | null
           phone?: string | null
@@ -199,6 +238,63 @@ export type Database = {
           pin_hash?: string | null
           theme?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recurring_rules: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          currency_id: string
+          day_of_month: number | null
+          direction: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          kind: string
+          last_run: string | null
+          next_run: string
+          note: string | null
+          person_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          currency_id: string
+          day_of_month?: number | null
+          direction?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          kind: string
+          last_run?: string | null
+          next_run?: string
+          note?: string | null
+          person_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          currency_id?: string
+          day_of_month?: number | null
+          direction?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          last_run?: string | null
+          next_run?: string
+          note?: string | null
+          person_id?: string | null
+          title?: string
           user_id?: string
         }
         Relationships: []
