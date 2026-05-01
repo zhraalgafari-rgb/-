@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { useTheme } from "@/lib/theme";
 import { hashPin, markLocked } from "@/lib/pin";
-import { Coins, Tags, Bell, Moon, Lock, LogOut, User, Download, ChevronLeft, Sun } from "lucide-react";
+import { Coins, Tags, Bell, Moon, Lock, LogOut, User, Download, ChevronLeft, Sun, Repeat, Archive } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/settings")({ component: SettingsPage });
@@ -128,6 +128,8 @@ function SettingsPage() {
         <Row to="/app/categories" icon={Tags} label="تصنيفات المصاريف" desc="إضافة وتعديل التصنيفات" />
         <Row to="/app/budgets" icon={Coins} label="الميزانية الشهرية" desc="حدّد سقف لكل تصنيف" />
         <Row to="/app/reminders" icon={Bell} label="التذكيرات" desc="مواعيد استرداد الديون" />
+        <Row to="/app/recurring" icon={Repeat} label="المعاملات المتكررة" desc="رواتب، إيجارات، اشتراكات" />
+        <Row to="/app/archive" icon={Archive} label="الأرشيف" desc="الأشخاص المؤرشفون" />
       </Card>
 
       <Card className="p-4 space-y-3">
