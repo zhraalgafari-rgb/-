@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { Wallet, Loader2, Bell } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
+import { ModuleTabs } from "@/components/common/ModuleTabs";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
@@ -39,6 +40,7 @@ function AppLayout() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-4">
+        <ModuleTabs />
         <Outlet />
       </main>
 
