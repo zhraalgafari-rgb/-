@@ -2,17 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Plus, ChevronRight, ChevronLeft, Pencil, Trash2, Search, Wallet } from "lucide-react";
-import { fmtMoney, fmtDate, fmtMonthAr, monthRange } from "@/lib/format";
-import { IconByName } from "@/components/IconByName";
+import { Wallet } from "lucide-react";
+import { fmtMonthAr, monthRange } from "@/lib/format";
 import { ExpenseDialog } from "@/components/ExpenseDialog";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { toast } from "sonner";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { SearchBar } from "@/components/common/SearchBar";
+import { FabButton } from "@/components/common/FabButton";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { MonthlyExpenseHeader } from "@/features/expenses/MonthlyExpenseHeader";
+import { CategoryBreakdown } from "@/features/expenses/CategoryBreakdown";
+import { ExpenseRow } from "@/features/expenses/ExpenseRow";
 
 export const Route = createFileRoute("/app/expenses")({ component: ExpensesPage });
 
@@ -32,6 +33,8 @@ function ExpensesPage() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [delTarget, setDelTarget] = useState<string | null>(null);
+  const [filterCat, setFilterCat] = useState<string>("");
 
   const load = async () => {
     if (!user) return;
@@ -58,9 +61,15 @@ function ExpensesPage() {
     return Number(amount) * (cur?.rate ?? 1);
   };
 
-  const totalBase = useMemo(() => expenses.reduce((s, x) => s + toBase(x.amount, x.currency_id), 0), [expenses, currencies]);
+  const totalBase = useMemo(
+    () => expenses.reduce((s, x) => s + toBase(x.amount, x.currency_id), 0),
+    [expenses, currencies],
+  );
 
-  const totalBudget = useMemo(() => budgets.reduce((s, b) => s + toBase(b.amount, b.currency_id), 0), [budgets, currencies]);
+  const totalBudget = useMemo(
+    () => budgets.reduce((s, b) => s + toBase(b.amount, b.currency_id), 0),
+    [budgets, currencies],
+  );
 
   const byCat = useMemo(() => {
     const m = new Map<string, number>();
@@ -71,93 +80,48 @@ function ExpensesPage() {
     return Array.from(m.entries())
       .map(([id, v]) => {
         const cat = categories.find((c) => c.id === id);
-        return { id, name: cat?.name ?? "غير مصنّف", color: cat?.color ?? "#94a3b8", icon: cat?.icon ?? "Tag", value: v };
+        return { id, name: cat?.name ?? "غير مصنّف", color: cat?.color ?? "#94a3b8", value: v };
       })
       .sort((a, b) => b.value - a.value);
   }, [expenses, categories, currencies]);
 
-  const filtered = expenses.filter((e) => {
+  const filtered = useMemo(() => expenses.filter((e) => {
+    if (filterCat && e.category_id !== filterCat) return false;
     if (!q) return true;
     const cat = categories.find((c) => c.id === e.category_id);
-    const hay = `${cat?.name ?? ""} ${e.note ?? ""}`.toLowerCase();
-    return hay.includes(q.toLowerCase());
-  });
+    return `${cat?.name ?? ""} ${e.note ?? ""}`.toLowerCase().includes(q.toLowerCase());
+  }), [expenses, q, filterCat, categories]);
 
-  const del = async (id: string) => {
-    if (!confirm("حذف هذا المصروف؟")) return;
-    const { error } = await supabase.from("expenses").delete().eq("id", id);
+  const del = async () => {
+    if (!delTarget) return;
+    const { error } = await supabase.from("expenses").delete().eq("id", delTarget);
     if (error) return toast.error(error.message);
     toast.success("تم الحذف"); load();
   };
 
-  const prevMonth = () => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1));
-  const nextMonth = () => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1));
-
-  const budgetPct = totalBudget > 0 ? Math.min(100, (totalBase / totalBudget) * 100) : 0;
-  const overBudget = totalBudget > 0 && totalBase > totalBudget;
-
   return (
-    <div className="space-y-4">
-      <div className="bg-gradient-primary text-primary-foreground rounded-2xl p-4 shadow-elevated">
-        <div className="flex items-center justify-between mb-2">
-          <button onClick={prevMonth} className="p-2 -m-2 rounded-lg hover:bg-white/10"><ChevronRight className="size-5" /></button>
-          <div className="text-center">
-            <div className="text-xs opacity-80">إجمالي مصاريف</div>
-            <div className="font-semibold text-sm">{fmtMonthAr(month)}</div>
-          </div>
-          <button onClick={nextMonth} className="p-2 -m-2 rounded-lg hover:bg-white/10"><ChevronLeft className="size-5" /></button>
-        </div>
-        <div className="text-center">
-          <div className="font-black text-3xl">{fmtMoney(totalBase)}</div>
-          <div className="text-xs opacity-80 mt-1">{base?.name ?? ""}</div>
-        </div>
-        {totalBudget > 0 && (
-          <div className="mt-3 bg-white/10 rounded-xl p-2.5">
-            <div className="flex justify-between text-xs mb-1.5">
-              <span>الميزانية: {fmtMoney(totalBudget)}</span>
-              <span className={overBudget ? "font-bold" : ""}>{Math.round(budgetPct)}%</span>
-            </div>
-            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div className={`h-full ${overBudget ? "bg-red-300" : "bg-white"} transition-all`} style={{ width: `${budgetPct}%` }} />
-            </div>
-            {overBudget && <div className="text-[11px] mt-1.5 opacity-95">⚠️ تجاوزت الميزانية بـ {fmtMoney(totalBase - totalBudget)}</div>}
-          </div>
-        )}
-      </div>
+    <div className="space-y-4 animate-in fade-in duration-300">
+      <MonthlyExpenseHeader
+        month={month}
+        onMonthChange={setMonth}
+        total={totalBase}
+        budget={totalBudget}
+        baseName={base?.name ?? ""}
+      />
 
-      {byCat.length > 0 && (
-        <Card className="p-4">
-          <h3 className="font-semibold text-sm mb-3">حسب التصنيف</h3>
-          <div className="grid grid-cols-[140px_1fr] gap-3 items-center">
-            <div className="h-32">
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie data={byCat} dataKey="value" nameKey="name" innerRadius={32} outerRadius={56} paddingAngle={2}>
-                    {byCat.map((d) => <Cell key={d.id} fill={d.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: any) => fmtMoney(Number(v))} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-1.5">
-              {byCat.slice(0, 5).map((d) => {
-                const pct = totalBase > 0 ? (d.value / totalBase) * 100 : 0;
-                return (
-                  <div key={d.id} className="flex items-center gap-2 text-xs">
-                    <div className="size-3 rounded-sm shrink-0" style={{ background: d.color }} />
-                    <span className="truncate flex-1">{d.name}</span>
-                    <span className="font-semibold">{Math.round(pct)}%</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </Card>
-      )}
+      <CategoryBreakdown data={byCat} total={totalBase} />
 
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث..." className="pr-10" />
+      <div className="flex items-center gap-2">
+        <div className="flex-1"><SearchBar value={q} onChange={setQ} placeholder="ابحث في المصاريف..." /></div>
+        <select
+          value={filterCat}
+          onChange={(e) => setFilterCat(e.target.value)}
+          className="h-10 rounded-lg border bg-card px-2 text-xs font-semibold max-w-[120px]"
+          aria-label="تصفية بالتصنيف"
+        >
+          <option value="">كل التصنيفات</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
       </div>
 
       {loading ? (
@@ -165,45 +129,45 @@ function ExpensesPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Wallet}
-          title={expenses.length === 0 ? "لا توجد مصاريف هذا الشهر" : "لا توجد نتائج"}
-          description={expenses.length === 0 ? "ابدأ بتسجيل أول مصروف وراقب إنفاقك بسهولة." : "جرّب كلمة بحث أخرى."}
+          title={expenses.length === 0 ? `لا توجد مصاريف في ${fmtMonthAr(month)}` : "لا توجد نتائج"}
+          description={expenses.length === 0 ? "ابدأ بتسجيل أول مصروف وراقب إنفاقك بسهولة." : "جرّب كلمة بحث أو تصنيف آخر."}
           variant="compact"
         />
       ) : (
         <div className="space-y-2">
-          {filtered.map((e) => {
-            const cat = categories.find((c) => c.id === e.category_id);
-            const cur = currencies.find((c) => c.id === e.currency_id);
-            return (
-              <div key={e.id} className="bg-card border rounded-2xl p-3 shadow-card flex items-center gap-3">
-                <div className="size-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: (cat?.color ?? "#94a3b8") + "22", color: cat?.color ?? "#94a3b8" }}>
-                  <IconByName name={cat?.icon ?? "Tag"} className="size-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm">{cat?.name ?? "غير مصنّف"}</div>
-                  {e.note && <div className="text-xs text-muted-foreground truncate">{e.note}</div>}
-                  <div className="text-[10px] text-muted-foreground">{fmtDate(e.expense_date)}</div>
-                </div>
-                <div className="text-left">
-                  <div className="font-bold text-danger">-{fmtMoney(Number(e.amount))}</div>
-                  <div className="text-[10px] text-muted-foreground">{cur?.name}</div>
-                </div>
-                <div className="flex flex-col">
-                  <button onClick={() => { setEditing(e); setOpen(true); }} className="p-1 text-muted-foreground hover:text-primary"><Pencil className="size-3.5" /></button>
-                  <button onClick={() => del(e.id)} className="p-1 text-muted-foreground hover:text-danger"><Trash2 className="size-3.5" /></button>
-                </div>
-              </div>
-            );
-          })}
+          {filtered.map((e) => (
+            <ExpenseRow
+              key={e.id}
+              expense={e}
+              category={categories.find((c) => c.id === e.category_id)}
+              currency={currencies.find((c) => c.id === e.currency_id)}
+              onEdit={() => { setEditing(e); setOpen(true); }}
+              onDelete={() => setDelTarget(e.id)}
+            />
+          ))}
         </div>
       )}
 
-      <button onClick={() => { setEditing(null); setOpen(true); }}
-        className="fixed bottom-20 left-4 z-20 size-14 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
-        <Plus className="size-6" />
-      </button>
+      <FabButton onClick={() => { setEditing(null); setOpen(true); }} label="إضافة مصروف" />
 
-      <ExpenseDialog open={open} onOpenChange={setOpen} currencies={currencies} categories={categories} editing={editing} onSuccess={load} />
+      <ExpenseDialog
+        open={open}
+        onOpenChange={setOpen}
+        currencies={currencies}
+        categories={categories}
+        editing={editing}
+        onSuccess={load}
+      />
+
+      <ConfirmDialog
+        open={!!delTarget}
+        onOpenChange={(v) => !v && setDelTarget(null)}
+        title="حذف المصروف"
+        description="لا يمكن التراجع عن هذا الإجراء."
+        destructive
+        confirmLabel="حذف"
+        onConfirm={del}
+      />
     </div>
   );
 }

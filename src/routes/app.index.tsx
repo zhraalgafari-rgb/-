@@ -1,23 +1,28 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Search, TrendingUp, TrendingDown, UserPlus, Users, Sparkles } from "lucide-react";
-import { fmtMoney } from "@/lib/format";
+import { Plus, UserPlus, Users } from "lucide-react";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { processDueRecurring } from "@/lib/recurring";
+import { SearchBar } from "@/components/common/SearchBar";
+import { FabButton } from "@/components/common/FabButton";
+import { DebtsHeader } from "@/features/debts/DebtsHeader";
+import { PersonRow } from "@/features/debts/PersonRow";
 
-export const Route = createFileRoute("/app/")({ component: AppHome });
+export const Route = createFileRoute("/app/")({ component: DebtsHome });
 
 interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
 interface Person { id: string; name: string; type: string; is_archived: boolean; avatar_color: string | null }
 interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string }
 
-function AppHome() {
+type Filter = "all" | "credit" | "debit";
+type Sort = "active" | "name" | "recent";
+
+function DebtsHome() {
   const { user } = useAuth();
   const [people, setPeople] = useState<Person[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -25,12 +30,12 @@ function AppHome() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
-  const [filter, setFilter] = useState<"all" | "credit" | "debit">("all");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<Sort>("active");
 
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    // Auto-process due recurring rules first
     await processDueRecurring(user.id);
     const [{ data: p }, { data: t }, { data: c }] = await Promise.all([
       supabase.from("people").select("*").eq("is_archived", false).order("created_at", { ascending: false }),
@@ -53,11 +58,10 @@ function AppHome() {
       const cur = currencies.find((c) => c.id === t.currency_id);
       const rate = cur?.rate ?? 1;
       const sign = t.direction === "credit" ? 1 : -1;
-      const cur_amt = Number(t.amount) * sign * rate;
-      const prev = map.get(t.person_id) ?? { net: 0, count: 0, lastDate: 0 };
       const dateMs = new Date(t.transaction_date).getTime();
+      const prev = map.get(t.person_id) ?? { net: 0, count: 0, lastDate: 0 };
       map.set(t.person_id, {
-        net: prev.net + cur_amt,
+        net: prev.net + Number(t.amount) * sign * rate,
         count: prev.count + 1,
         lastDate: Math.max(prev.lastDate, dateMs),
       });
@@ -68,62 +72,55 @@ function AppHome() {
   const totals = useMemo(() => {
     let owe = 0, owed = 0;
     for (const [, v] of personBalances) {
-      if (v.net > 0) owed += v.net;
-      else owe += -v.net;
+      if (v.net > 0) owed += v.net; else owe += -v.net;
     }
     return { owe, owed };
   }, [personBalances]);
 
-  const filtered = people
-    .filter((p) => {
+  const filtered = useMemo(() => {
+    const list = people.filter((p) => {
       if (q && !p.name.toLowerCase().includes(q.toLowerCase())) return false;
       const b = personBalances.get(p.id);
       if (filter === "credit") return (b?.net ?? 0) > 0.001;
       if (filter === "debit") return (b?.net ?? 0) < -0.001;
       return true;
-    })
-    .sort((a, b) => {
-      // Active balances first, then most recent activity
+    });
+    return list.sort((a, b) => {
       const ba = personBalances.get(a.id);
       const bb = personBalances.get(b.id);
-      const aActive = Math.abs(ba?.net ?? 0) > 0.001 ? 1 : 0;
-      const bActive = Math.abs(bb?.net ?? 0) > 0.001 ? 1 : 0;
-      if (aActive !== bActive) return bActive - aActive;
-      return (bb?.lastDate ?? 0) - (ba?.lastDate ?? 0);
+      if (sort === "name") return a.name.localeCompare(b.name, "ar");
+      if (sort === "recent") return (bb?.lastDate ?? 0) - (ba?.lastDate ?? 0);
+      // active: most-owed/owing first
+      const aActive = Math.abs(ba?.net ?? 0);
+      const bActive = Math.abs(bb?.net ?? 0);
+      return bActive - aActive;
     });
+  }, [people, q, filter, sort, personBalances]);
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
-      <div className="bg-gradient-primary text-primary-foreground rounded-2xl p-4 shadow-elevated">
-        <div className="flex items-center justify-between text-xs opacity-80 mb-2">
-          <span>إجمالي الأرصدة ({baseCurrency?.name ?? "محلي"})</span>
-          <Link to="/app/insights" className="flex items-center gap-1 bg-white/15 backdrop-blur px-2 py-0.5 rounded-full hover:bg-white/25 transition-colors">
-            <Sparkles className="size-3" /> ذكاء
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => setFilter(filter === "credit" ? "all" : "credit")} className={`bg-white/10 backdrop-blur rounded-xl p-3 text-right hover:bg-white/15 transition-all active:scale-[0.98] ${filter === "credit" ? "ring-2 ring-white/40" : ""}`}>
-            <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
-              <TrendingUp className="size-3.5" /> لك
-            </div>
-            <div className="font-black text-lg tabular-nums">{fmtMoney(totals.owed)}</div>
-          </button>
-          <button onClick={() => setFilter(filter === "debit" ? "all" : "debit")} className={`bg-white/10 backdrop-blur rounded-xl p-3 text-right hover:bg-white/15 transition-all active:scale-[0.98] ${filter === "debit" ? "ring-2 ring-white/40" : ""}`}>
-            <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
-              <TrendingDown className="size-3.5" /> عليك
-            </div>
-            <div className="font-black text-lg tabular-nums">{fmtMoney(totals.owe)}</div>
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-3 mt-2">
-          <div className="text-[11px] opacity-80 text-center">الصافي: <span className="tabular-nums font-semibold">{fmtMoney(totals.owed - totals.owe)}</span></div>
-          <div className="text-[11px] opacity-80 text-center">{people.length} شخص · {txs.length} معاملة</div>
-        </div>
-      </div>
+      <DebtsHeader
+        owed={totals.owed}
+        owe={totals.owe}
+        baseName={baseCurrency?.name ?? "محلي"}
+        peopleCount={people.length}
+        txCount={txs.length}
+        filter={filter}
+        onFilterChange={setFilter}
+      />
 
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن شخص..." className="pr-10" />
+      <div className="flex items-center gap-2">
+        <div className="flex-1"><SearchBar value={q} onChange={setQ} placeholder="ابحث عن شخص..." /></div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as Sort)}
+          className="h-10 rounded-lg border bg-card px-2 text-xs font-semibold text-foreground"
+          aria-label="فرز"
+        >
+          <option value="active">الأكثر نشاطاً</option>
+          <option value="recent">الأحدث</option>
+          <option value="name">أبجدي</option>
+        </select>
       </div>
 
       {filter !== "all" && (
@@ -152,52 +149,13 @@ function AppHome() {
         )
       ) : (
         <div className="space-y-2">
-          {filtered.map((p, i) => {
-            const b = personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0 };
-            const isCredit = b.net >= 0;
-            const settled = Math.abs(b.net) < 0.001;
-            return (
-              <Link
-                key={p.id}
-                to="/app/person/$id"
-                params={{ id: p.id }}
-                className="block bg-card rounded-2xl border shadow-card hover:shadow-elevated transition-all p-3.5 active:scale-[0.99] animate-in fade-in slide-in-from-bottom-1"
-                style={{ animationDelay: `${Math.min(i * 30, 300)}ms`, animationFillMode: "backwards" }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`size-11 rounded-xl flex items-center justify-center font-bold text-base ${settled ? "bg-secondary text-muted-foreground" : isCredit ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}>
-                    {p.name.trim().charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate">{p.name}</div>
-                    <div className="text-xs text-muted-foreground">{b.count} معاملة</div>
-                  </div>
-                  <div className="text-left">
-                    {settled ? (
-                      <div className="text-xs text-muted-foreground font-medium">مسوّى</div>
-                    ) : (
-                      <>
-                        <div className={`font-bold tabular-nums ${isCredit ? "text-success" : "text-danger"}`}>
-                          {isCredit ? "" : "-"}{fmtMoney(Math.abs(b.net))}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">{isCredit ? "له" : "عليه"}</div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+          {filtered.map((p, i) => (
+            <PersonRow key={p.id} person={p} balance={personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0 }} index={i} />
+          ))}
         </div>
       )}
 
-      <button
-        onClick={() => setOpenAdd(true)}
-        className="fixed bottom-20 left-4 z-20 size-14 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-        aria-label="إضافة معاملة"
-      >
-        <Plus className="size-6" />
-      </button>
+      <FabButton onClick={() => setOpenAdd(true)} label="إضافة معاملة" />
 
       <AddTransactionDialog
         open={openAdd}
