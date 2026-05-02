@@ -123,14 +123,23 @@ function SettingsPage() {
         <Button onClick={saveName} disabled={busy} className="w-full">حفظ</Button>
       </Card>
 
-      <Card className="p-2">
-        <Row to="/app/currencies" icon={Coins} label="العملات" desc="إدارة العملات وأسعار التحويل" />
-        <Row to="/app/categories" icon={Tags} label="تصنيفات المصاريف" desc="إضافة وتعديل التصنيفات" />
-        <Row to="/app/budgets" icon={Coins} label="الميزانية الشهرية" desc="حدّد سقف لكل تصنيف" />
-        <Row to="/app/reminders" icon={Bell} label="التذكيرات" desc="مواعيد استرداد الديون" />
-        <Row to="/app/recurring" icon={Repeat} label="المعاملات المتكررة" desc="رواتب، إيجارات، اشتراكات" />
-        <Row to="/app/archive" icon={Archive} label="الأرشيف" desc="الأشخاص المؤرشفون" />
-      </Card>
+      <div className="space-y-2">
+        <h3 className="text-xs font-bold text-muted-foreground px-2">الديون</h3>
+        <Card className="p-2">
+          <Row to="/app/currencies" icon={Coins} label="العملات" desc="إدارة العملات وأسعار التحويل" />
+          <Row to="/app/reminders" icon={Bell} label="التذكيرات" desc="مواعيد استرداد الديون" />
+          <Row to="/app/recurring" icon={Repeat} label="المعاملات المتكررة" desc="رواتب، إيجارات، اشتراكات" />
+          <Row to="/app/archive" icon={Archive} label="الأرشيف" desc="الأشخاص المؤرشفون" />
+        </Card>
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-xs font-bold text-muted-foreground px-2">المصاريف</h3>
+        <Card className="p-2">
+          <Row to="/app/categories" icon={Tags} label="تصنيفات المصاريف" desc="إضافة وتعديل التصنيفات" />
+          <Row to="/app/budgets" icon={Coins} label="الميزانية الشهرية" desc="حدّد سقف لكل تصنيف" />
+        </Card>
+      </div>
 
       <Card className="p-4 space-y-3">
         <div className="flex items-center justify-between">
