@@ -95,8 +95,9 @@ function ExpensesPage() {
   const del = async () => {
     if (!delTarget) return;
     const { error } = await supabase.from("expenses").delete().eq("id", delTarget);
-    if (error) return toast.error(error.message);
-    toast.success("تم الحذف"); load();
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم الحذف");
+    load();
   };
 
   return (
