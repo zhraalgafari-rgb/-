@@ -2,15 +2,17 @@ import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-r
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { ArrowRight, Plus, Trash2, TrendingUp, TrendingDown, Pencil, Share2, MessageCircle, Archive } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Pencil, Share2, MessageCircle, Archive } from "lucide-react";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { fmtMoney, fmtDate, fmtTime } from "@/lib/format";
+import { fmtMoney, fmtDate, fmtMonthAr } from "@/lib/format";
 import { toast } from "sonner";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
+import { TransactionRow } from "@/features/debts/TransactionRow";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
@@ -32,6 +34,9 @@ function PersonPage() {
   const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
   const [editingTx, setEditingTx] = useState<Tx | null>(null);
+  const [delTxId, setDelTxId] = useState<string | null>(null);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [confirmDelPerson, setConfirmDelPerson] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -48,7 +53,7 @@ function PersonPage() {
     setDraftPhone(person?.phone ?? "");
     setTxs((t ?? []) as Tx[]);
     setCurrencies((c ?? []) as Currency[]);
-    setPeople((p ?? []) as any);
+    setPeople((p ?? []) as { id: string; name: string }[]);
     setLoading(false);
   };
 
@@ -58,48 +63,69 @@ function PersonPage() {
     let net = 0;
     for (const t of txs) {
       const cur = currencies.find((c) => c.id === t.currency_id);
-      const rate = cur?.rate ?? 1;
-      const sign = t.direction === "credit" ? 1 : -1;
-      net += Number(t.amount) * sign * rate;
+      net += Number(t.amount) * (t.direction === "credit" ? 1 : -1) * (cur?.rate ?? 1);
     }
     return net;
   }, [txs, currencies]);
 
-  const ordered = [...txs].sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime());
-  const running: Record<string, number> = {};
-  let acc = 0;
-  for (const t of ordered) {
-    const cur = currencies.find((c) => c.id === t.currency_id);
-    acc += Number(t.amount) * (t.direction === "credit" ? 1 : -1) * (cur?.rate ?? 1);
-    running[t.id] = acc;
-  }
+  // Build running balance by chronological order
+  const running = useMemo(() => {
+    const ordered = [...txs].sort(
+      (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime(),
+    );
+    const map: Record<string, number> = {};
+    let acc = 0;
+    for (const t of ordered) {
+      const cur = currencies.find((c) => c.id === t.currency_id);
+      acc += Number(t.amount) * (t.direction === "credit" ? 1 : -1) * (cur?.rate ?? 1);
+      map[t.id] = acc;
+    }
+    return map;
+  }, [txs, currencies]);
 
-  const delTx = async (txId: string) => {
-    if (!confirm("حذف هذه المعاملة؟")) return;
-    const { error } = await supabase.from("transactions").delete().eq("id", txId);
-    if (error) return toast.error(error.message);
+  // Group transactions by month for timeline view
+  const grouped = useMemo(() => {
+    const groups = new Map<string, Tx[]>();
+    for (const t of txs) {
+      const d = new Date(t.transaction_date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const arr = groups.get(key) ?? [];
+      arr.push(t);
+      groups.set(key, arr);
+    }
+    return Array.from(groups.entries()).map(([key, items]) => {
+      const [y, m] = key.split("-").map(Number);
+      return { key, label: fmtMonthAr(new Date(y, m, 1)), items };
+    });
+  }, [txs]);
+
+  const delTx = async () => {
+    if (!delTxId) return;
+    const { error } = await supabase.from("transactions").delete().eq("id", delTxId);
+    if (error) { toast.error(error.message); return; }
     toast.success("تم الحذف"); load();
   };
 
   const archivePerson = async () => {
-    if (!confirm(`أرشفة ${name}؟ (يمكن استعادتها لاحقاً)`)) return;
     const { error } = await supabase.from("people").update({ is_archived: true }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("تمت الأرشفة"); nav({ to: "/app" });
   };
 
   const delPerson = async () => {
-    if (txs.length > 0) return toast.error("استخدم الأرشفة بدلاً من الحذف — لديه معاملات");
-    if (!confirm(`حذف ${name} نهائياً؟`)) return;
+    if (txs.length > 0) { toast.error("استخدم الأرشفة بدلاً من الحذف — لديه معاملات"); return; }
     const { error } = await supabase.from("people").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("تم الحذف"); nav({ to: "/app" });
   };
 
   const saveName = async () => {
-    if (!draftName.trim()) return toast.error("الاسم مطلوب");
-    const { error } = await supabase.from("people").update({ name: draftName.trim(), phone: draftPhone.trim() || null }).eq("id", id);
-    if (error) return toast.error(error.message);
+    if (!draftName.trim()) { toast.error("الاسم مطلوب"); return; }
+    const { error } = await supabase.from("people").update({
+      name: draftName.trim(),
+      phone: draftPhone.trim() || null,
+    }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
     toast.success("تم الحفظ"); setEditName(false); load();
   };
 
@@ -118,7 +144,7 @@ function PersonPage() {
   const share = async () => {
     const text = buildShareText();
     if (navigator.share) {
-      try { await navigator.share({ title: `كشف حساب ${name}`, text }); return; } catch {}
+      try { await navigator.share({ title: `كشف حساب ${name}`, text }); return; } catch { /* fallthrough */ }
     }
     await navigator.clipboard.writeText(text);
     toast.success("تم نسخ الكشف للحافظة");
@@ -133,26 +159,29 @@ function PersonPage() {
   const isCredit = balance >= 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <Link to="/app" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowRight className="size-4" /> رجوع
         </Link>
         <div className="flex items-center gap-1">
-          <button onClick={share} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Share2 className="size-4" /></button>
-          <button onClick={shareWhatsApp} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-success"><MessageCircle className="size-4" /></button>
-          <button onClick={() => setEditName(true)} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="size-4" /></button>
-          <button onClick={archivePerson} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary" title="أرشفة"><Archive className="size-4" /></button>
-          <button onClick={delPerson} className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-danger" title="حذف"><Trash2 className="size-4" /></button>
+          <button onClick={share} aria-label="مشاركة" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Share2 className="size-4" /></button>
+          <button onClick={shareWhatsApp} aria-label="واتساب" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-success"><MessageCircle className="size-4" /></button>
+          <button onClick={() => setEditName(true)} aria-label="تعديل" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="size-4" /></button>
+          <button onClick={() => setConfirmArchive(true)} aria-label="أرشفة" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Archive className="size-4" /></button>
+          <button onClick={() => setConfirmDelPerson(true)} aria-label="حذف" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-danger"><Trash2 className="size-4" /></button>
         </div>
       </div>
 
       <div className={`rounded-2xl p-4 shadow-elevated text-white ${isCredit ? "bg-gradient-success" : "bg-gradient-danger"}`}>
-        <div className="text-xs opacity-90 mb-1">{name}{phone && <span className="ms-2 opacity-75" dir="ltr">{phone}</span>}</div>
+        <div className="text-xs opacity-90 mb-1">
+          {name}
+          {phone && <span className="ms-2 opacity-75" dir="ltr">{phone}</span>}
+        </div>
         <div className="flex items-end justify-between">
           <div>
             <div className="text-xs opacity-90">{isCredit ? "له عندك" : "عليه"}</div>
-            <div className="text-3xl font-black mt-0.5">{fmtMoney(Math.abs(balance))}</div>
+            <div className="text-3xl font-black mt-0.5 tabular-nums">{fmtMoney(Math.abs(balance))}</div>
           </div>
           <div className="text-xs opacity-90">{txs.length} معاملة</div>
         </div>
@@ -163,41 +192,34 @@ function PersonPage() {
       ) : txs.length === 0 ? (
         <EmptyState icon={Plus} title="لا توجد معاملات بعد" description="أضف أول معاملة لهذا الشخص." variant="compact" />
       ) : (
-        <div className="space-y-2">
-          {txs.map((t) => {
-            const cur = currencies.find((c) => c.id === t.currency_id);
-            const credit = t.direction === "credit";
-            return (
-              <div key={t.id} className="bg-card border rounded-2xl p-3 shadow-card">
-                <div className="flex items-start gap-3">
-                  <div className={`size-9 rounded-lg flex items-center justify-center shrink-0 ${credit ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}>
-                    {credit ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className={`font-bold ${credit ? "text-success" : "text-danger"}`}>
-                        {credit ? "+" : "-"}{fmtMoney(Number(t.amount))} <span className="text-xs text-muted-foreground font-normal">{cur?.name}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">{fmtDate(t.transaction_date)} · {fmtTime(t.transaction_date)}</div>
-                    </div>
-                    {t.details && <div className="text-sm text-muted-foreground mt-0.5 truncate">{t.details}</div>}
-                    <div className="flex items-center justify-between mt-1.5">
-                      <div className="text-[11px] text-muted-foreground">الرصيد: {fmtMoney(Math.abs(running[t.id]))} {running[t.id] >= 0 ? "له" : "عليه"}</div>
-                      <div className="flex gap-1">
-                        <button onClick={() => { setEditingTx(t); setOpenAdd(true); }} className="text-muted-foreground hover:text-primary p-1"><Pencil className="size-3.5" /></button>
-                        <button onClick={() => delTx(t.id)} className="text-muted-foreground hover:text-danger p-1"><Trash2 className="size-3.5" /></button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <div className="space-y-4">
+          {grouped.map((g) => (
+            <div key={g.key} className="space-y-2">
+              <div className="flex items-center gap-2 px-1">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-[11px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{g.label}</span>
+                <div className="h-px flex-1 bg-border" />
               </div>
-            );
-          })}
+              {g.items.map((t) => (
+                <TransactionRow
+                  key={t.id}
+                  tx={t}
+                  currency={currencies.find((c) => c.id === t.currency_id)}
+                  runningBalance={running[t.id] ?? 0}
+                  onEdit={() => { setEditingTx(t); setOpenAdd(true); }}
+                  onDelete={() => setDelTxId(t.id)}
+                />
+              ))}
+            </div>
+          ))}
         </div>
       )}
 
-      <button onClick={() => { setEditingTx(null); setOpenAdd(true); }}
-        className="fixed bottom-20 left-4 z-20 size-14 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
+      <button
+        onClick={() => { setEditingTx(null); setOpenAdd(true); }}
+        aria-label="إضافة معاملة"
+        className="fixed bottom-20 left-4 z-20 size-14 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+      >
         <Plus className="size-6" />
       </button>
 
@@ -221,6 +243,33 @@ function PersonPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!delTxId}
+        onOpenChange={(v) => !v && setDelTxId(null)}
+        title="حذف المعاملة"
+        description="لا يمكن التراجع عن هذا الإجراء."
+        destructive confirmLabel="حذف"
+        onConfirm={delTx}
+      />
+
+      <ConfirmDialog
+        open={confirmArchive}
+        onOpenChange={setConfirmArchive}
+        title={`أرشفة ${name}؟`}
+        description="يمكن استعادة الشخص من صفحة الأرشيف لاحقاً."
+        confirmLabel="أرشفة"
+        onConfirm={archivePerson}
+      />
+
+      <ConfirmDialog
+        open={confirmDelPerson}
+        onOpenChange={setConfirmDelPerson}
+        title={`حذف ${name} نهائياً؟`}
+        description="لا يمكن الحذف إذا كانت هناك معاملات. استخدم الأرشفة بدلاً من ذلك."
+        destructive confirmLabel="حذف"
+        onConfirm={delPerson}
+      />
     </div>
   );
 }
