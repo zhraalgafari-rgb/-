@@ -56,7 +56,7 @@ function SecurityPage() {
   const removePin = async () => {
     if (!user) return;
     const { error } = await supabase.from("profiles").update({ pin_hash: null }).eq("user_id", user.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setHasPin(false);
     toast.success("تم إلغاء القفل");
   };

@@ -129,5 +129,4 @@ function download(blob: Blob, name: string) {
   URL.revokeObjectURL(url);
 }
 
-function Button2() { return null }
-void Button2; void Button;
+void Button;
