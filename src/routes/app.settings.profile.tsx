@@ -1,0 +1,84 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Avatar } from "@/components/common/Avatar";
+import { User } from "lucide-react";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/app/settings/profile")({ component: ProfilePage });
+
+const COLORS = [
+  "oklch(0.7 0.15 245)", "oklch(0.7 0.15 165)", "oklch(0.7 0.18 25)",
+  "oklch(0.7 0.18 305)", "oklch(0.72 0.14 80)", "oklch(0.65 0.16 200)",
+];
+
+function ProfilePage() {
+  const { user } = useAuth();
+  const [displayName, setDisplayName] = useState("");
+  const [color, setColor] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
+      setDisplayName(data?.display_name ?? "");
+      try { setColor(localStorage.getItem("daftarak.avatar.color")); } catch {}
+    })();
+  }, [user]);
+
+  const save = async () => {
+    if (!user) return;
+    setBusy(true);
+    const { error } = await supabase.from("profiles").update({ display_name: displayName.trim() || null }).eq("user_id", user.id);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    if (color) localStorage.setItem("daftarak.avatar.color", color);
+    toast.success("تم الحفظ");
+  };
+
+  return (
+    <div className="space-y-4">
+      <PageHeader icon={User} title="الملف الشخصي" subtitle={user?.email ?? ""} back="/app/settings" />
+
+      <Card className="p-5 flex flex-col items-center gap-3">
+        <Avatar name={displayName || user?.email || "?"} color={color} size="lg" />
+        <div className="text-sm font-semibold">{displayName || "بدون اسم"}</div>
+      </Card>
+
+      <Card className="p-4 space-y-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">الاسم المعروض</Label>
+          <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="اسمك" maxLength={60} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">لون الأفاتار</Label>
+          <div className="flex flex-wrap gap-2">
+            {COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => setColor(c)}
+                style={{ background: c }}
+                className={`size-9 rounded-full transition-all ${color === c ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                aria-label="اختر اللون"
+              />
+            ))}
+            <button
+              onClick={() => setColor(null)}
+              className={`size-9 rounded-full bg-secondary text-xs font-bold transition-all ${!color ? "ring-2 ring-primary ring-offset-2" : ""}`}
+            >
+              تلقائي
+            </button>
+          </div>
+        </div>
+        <Button onClick={save} disabled={busy} className="w-full bg-gradient-primary text-primary-foreground">حفظ</Button>
+      </Card>
+    </div>
+  );
+}
