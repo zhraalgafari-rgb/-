@@ -63,7 +63,7 @@ function DataPage() {
     setBusy(true);
     const r = await uploadBackup(user.id, "manual");
     setBusy(false);
-    if (!r) return toast.error("فشل الرفع");
+    if (!r) { toast.error("فشل الرفع"); return; }
     toast.success("تم حفظ النسخة في السحابة");
     loadBackups();
   };
@@ -81,7 +81,7 @@ function DataPage() {
     if (!b) return;
     setBusy(true);
     const snap = await downloadBackup(b.path);
-    if (!snap) { setBusy(false); return toast.error("تعذّر تحميل النسخة"); }
+    if (!snap) { setBusy(false); toast.error("تعذّر تحميل النسخة"); return; }
     const n = await restoreFromSnapshot(user.id, snap, "merge");
     setBusy(false);
     toast.success(`تم استرجاع ${n} عنصر`);
