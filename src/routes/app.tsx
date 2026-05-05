@@ -1,19 +1,42 @@
 import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Wallet, Loader2, Bell } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { ModuleTabs } from "@/components/common/ModuleTabs";
+import { BadgeCount } from "@/components/common/BadgeCount";
+import { fetchPending, pollAndNotify } from "@/lib/notifications";
+import { maybeRunAutoBackup } from "@/lib/backup";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
 function AppLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [pending, setPending] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const items = await fetchPending(user.id);
+      if (!cancelled) setPending(items.length);
+      const { data } = await supabase.from("profiles").select("backup_frequency").eq("user_id", user.id).maybeSingle();
+      const freq = (data?.backup_frequency ?? "off") as "off" | "daily" | "weekly" | "monthly";
+      maybeRunAutoBackup(user.id, freq);
+      pollAndNotify(user.id);
+    })();
+    const t = setInterval(async () => {
+      const items = await fetchPending(user.id);
+      if (!cancelled) setPending(items.length);
+    }, 5 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, [user]);
 
   if (loading || !user) {
     return (
@@ -33,8 +56,13 @@ function AppLayout() {
             </div>
             دفترك
           </Link>
-          <Link to="/app/reminders" className="p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="التذكيرات">
+          <Link to="/app/notifications" className="relative p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="الإشعارات">
             <Bell className="size-5" />
+            {pending > 0 && (
+              <span className="absolute top-0.5 right-0.5">
+                <BadgeCount count={pending} tone="danger" />
+              </span>
+            )}
           </Link>
         </div>
       </header>

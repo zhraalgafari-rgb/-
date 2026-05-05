@@ -95,7 +95,8 @@ function SettingsPage() {
 
       {/* Data */}
       <SettingsGroup title="البيانات">
-        <SettingsRow to="/app/settings/data" icon={Database} label="النسخ الاحتياطي" desc="تصدير، استيراد، مسح" tone="success" />
+        <SettingsRow to="/app/settings/data" icon={Database} label="النسخ الاحتياطي" desc="السحابة، تصدير، استيراد" tone="success" />
+        <SettingsRow to="/app/activity" icon={Info} label="سجل النشاط" desc="آخر العمليات" tone="muted" />
       </SettingsGroup>
 
       {/* About */}

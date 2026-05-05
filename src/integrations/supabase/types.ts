@@ -44,6 +44,33 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_meta: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          path: string
+          size_bytes: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          path: string
+          size_bytes?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          path?: string
+          size_bytes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       budgets: {
         Row: {
           amount: number
@@ -211,9 +238,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          backup_frequency: string
           created_at: string
           display_name: string | null
           id: string
+          last_seen_reminder_at: string | null
+          notif_subscription: Json | null
           onboarded: boolean
           pin_hash: string | null
           theme: string
@@ -221,9 +251,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          backup_frequency?: string
           created_at?: string
           display_name?: string | null
           id?: string
+          last_seen_reminder_at?: string | null
+          notif_subscription?: Json | null
           onboarded?: boolean
           pin_hash?: string | null
           theme?: string
@@ -231,9 +264,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          backup_frequency?: string
           created_at?: string
           display_name?: string | null
           id?: string
+          last_seen_reminder_at?: string | null
+          notif_subscription?: Json | null
           onboarded?: boolean
           pin_hash?: string | null
           theme?: string
