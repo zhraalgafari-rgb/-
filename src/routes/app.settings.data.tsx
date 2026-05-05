@@ -51,7 +51,7 @@ function DataPage() {
 
   const exportCSV = async (kind: "transactions" | "expenses") => {
     const { data } = await supabase.from(kind).select("*");
-    if (!data?.length) return toast.info("لا توجد بيانات");
+    if (!data?.length) { toast.info("لا توجد بيانات"); return; }
     const headers = Object.keys(data[0]);
     const csv = [headers.join(","), ...data.map((r: Record<string, unknown>) => headers.map((h) => JSON.stringify(r[h] ?? "")).join(","))].join("\n");
     download(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }), `daftarak-${kind}-${Date.now()}.csv`);
