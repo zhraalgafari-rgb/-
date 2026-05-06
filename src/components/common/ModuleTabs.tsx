@@ -31,19 +31,19 @@ export function ModuleTabs() {
 
   if (!isDebts && !isExpenses) return null;
 
-  const base = "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold rounded-xl transition-all active:scale-[0.98]";
+  const base = "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-lg transition-all active:scale-[0.98]";
   return (
-    <div className="bg-secondary/60 p-1 rounded-2xl flex items-center gap-1 mb-4 sticky top-14 z-20 backdrop-blur shadow-card" role="tablist">
+    <div className="bg-secondary/70 p-0.5 rounded-xl flex items-center gap-0.5 mb-3 sticky top-12 z-20 backdrop-blur shadow-card border border-border/60" role="tablist">
       <Link
         to="/app"
         role="tab"
         aria-selected={isDebts}
         className={`${base} ${isDebts ? "bg-card text-primary shadow-card" : "text-muted-foreground"}`}
       >
-        <Users className="size-4" />
+        <Users className="size-3.5" />
         <span>الديون</span>
         {counts.people > 0 && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full tabular-nums ${isDebts ? "bg-primary/15" : "bg-card/80"}`}>
+          <span className={`text-[9px] px-1.5 py-0.5 rounded-full tabular-nums font-black ${isDebts ? "bg-primary/15 text-primary" : "bg-card/80"}`}>
             {counts.people}
           </span>
         )}
@@ -54,10 +54,10 @@ export function ModuleTabs() {
         aria-selected={isExpenses}
         className={`${base} ${isExpenses ? "bg-card text-primary shadow-card" : "text-muted-foreground"}`}
       >
-        <Wallet className="size-4" />
+        <Wallet className="size-3.5" />
         <span>المصاريف</span>
         {counts.expenses > 0 && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full tabular-nums ${isExpenses ? "bg-primary/15" : "bg-card/80"}`}>
+          <span className={`text-[9px] px-1.5 py-0.5 rounded-full tabular-nums font-black ${isExpenses ? "bg-primary/15 text-primary" : "bg-card/80"}`}>
             {counts.expenses}
           </span>
         )}

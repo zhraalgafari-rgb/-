@@ -47,17 +47,17 @@ function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-20">
       <header className="bg-gradient-hero text-white sticky top-0 z-30 shadow-elevated">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/app" className="flex items-center gap-2 font-bold">
-            <div className="size-8 rounded-lg bg-white/15 backdrop-blur flex items-center justify-center">
-              <Wallet className="size-4" />
+        <div className="max-w-3xl mx-auto px-3 h-12 flex items-center justify-between">
+          <Link to="/app" className="flex items-center gap-2 font-black text-sm">
+            <div className="size-7 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center ring-1 ring-white/15">
+              <Wallet className="size-3.5" />
             </div>
             دفترك
           </Link>
-          <Link to="/app/notifications" className="relative p-2 rounded-lg hover:bg-white/10 transition-colors" aria-label="الإشعارات">
-            <Bell className="size-5" />
+          <Link to="/app/notifications" className="relative p-1.5 rounded-lg hover:bg-white/10 transition-colors" aria-label="الإشعارات">
+            <Bell className="size-4" />
             {pending > 0 && (
               <span className="absolute top-0.5 right-0.5">
                 <BadgeCount count={pending} tone="danger" />
@@ -67,7 +67,7 @@ function AppLayout() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-4">
+      <main className="max-w-3xl mx-auto px-3 py-3">
         <ModuleTabs />
         <Outlet />
       </main>

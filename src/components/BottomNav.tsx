@@ -55,7 +55,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-card/95 backdrop-blur border-t z-30 pb-[env(safe-area-inset-bottom)]" aria-label="التنقل الرئيسي">
-      <div className="max-w-3xl mx-auto grid grid-cols-4 h-16">
+      <div className="max-w-3xl mx-auto grid grid-cols-4 h-14">
         {items.map((it) => {
           const active = it.match(path);
           const Icon = it.icon;
@@ -67,7 +67,7 @@ export function BottomNav() {
               className={`flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors active:scale-95 ${active ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
               aria-current={active ? "page" : undefined}
             >
-              <div className={`size-9 rounded-xl flex items-center justify-center transition-all relative ${active ? "bg-gradient-primary text-primary-foreground shadow-glow" : ""}`}>
+              <div className={`size-8 rounded-lg flex items-center justify-center transition-all relative ${active ? "bg-gradient-primary text-primary-foreground shadow-glow" : ""}`}>
                 <Icon className="size-[18px]" />
                 {showBadge && (
                   <span className="absolute -top-1 -right-1">

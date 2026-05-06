@@ -20,19 +20,19 @@ export function SettingsRow(props: LinkProps | ButtonProps) {
 
   const inner = (
     <>
-      <IconTile icon={icon} tone={tone ?? ((props as ButtonProps).danger ? "danger" : "muted")} />
+      <IconTile icon={icon} size="sm" tone={tone ?? ((props as ButtonProps).danger ? "danger" : "muted")} />
       <div className="flex-1 min-w-0 text-right">
-        <div className="font-semibold text-sm flex items-center gap-2">
+        <div className="font-semibold text-[13px] flex items-center gap-2 leading-tight">
           <span className="truncate">{label}</span>
           {badge}
         </div>
-        {desc && <div className="text-xs text-muted-foreground truncate">{desc}</div>}
+        {desc && <div className="text-[11px] text-muted-foreground truncate mt-0.5">{desc}</div>}
       </div>
-      {trailing ?? <ChevronLeft className="size-4 text-muted-foreground shrink-0" />}
+      {trailing ?? <ChevronLeft className="size-3.5 text-muted-foreground shrink-0" />}
     </>
   );
 
-  const cls = `w-full flex items-center gap-3 p-3 rounded-xl transition-colors active:scale-[0.99] ${(props as ButtonProps).danger ? "hover:bg-danger-soft text-danger" : "hover:bg-secondary"}`;
+  const cls = `w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors active:scale-[0.99] ${(props as ButtonProps).danger ? "hover:bg-danger-soft text-danger" : "hover:bg-secondary"}`;
 
   if ("to" in props && props.to) {
     return <Link to={props.to} className={cls}>{inner}</Link>;

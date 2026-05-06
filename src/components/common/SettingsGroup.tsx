@@ -8,9 +8,13 @@ interface Props {
 
 export function SettingsGroup({ title, children }: Props) {
   return (
-    <div className="space-y-2">
-      {title && <h3 className="text-xs font-bold text-muted-foreground px-2">{title}</h3>}
-      <Card className="p-1.5">{children}</Card>
+    <div className="space-y-1.5">
+      {title && (
+        <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
+          {title}
+        </h3>
+      )}
+      <Card className="p-1 divide-y divide-border/50">{children}</Card>
     </div>
   );
 }
