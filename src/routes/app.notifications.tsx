@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { fetchPending, markAllSeen, type PendingItem } from "@/lib/notifications";
 import { fmtDate } from "@/lib/format";
-import { Bell, AlarmClock, ArrowLeft } from "lucide-react";
+import { Bell, AlarmClock, ArrowLeft, Check, Clock } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/notifications")({ component: NotificationsCenter });
 
@@ -15,15 +17,33 @@ function NotificationsCenter() {
   const [items, setItems] = useState<PendingItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const load = useCallback(async () => {
+    if (!user) return;
+    const list = await fetchPending(user.id);
+    setItems(list);
+    setLoading(false);
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const list = await fetchPending(user.id);
-      setItems(list);
+      await load();
       await markAllSeen(user.id);
-      setLoading(false);
     })();
-  }, [user]);
+  }, [user, load]);
+
+  const markDone = async (id: string) => {
+    await supabase.from("reminders").update({ is_done: true }).eq("id", id);
+    setItems((xs) => xs.filter((x) => x.id !== id));
+    toast.success("تم");
+  };
+
+  const snooze = async (id: string, days = 1) => {
+    const d = new Date(); d.setDate(d.getDate() + days);
+    await supabase.from("reminders").update({ due_date: d.toISOString() }).eq("id", id);
+    setItems((xs) => xs.filter((x) => x.id !== id));
+    toast.success(`مؤجل ${days} يوم`);
+  };
 
   return (
     <div className="space-y-4">
@@ -43,8 +63,28 @@ function NotificationsCenter() {
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-sm truncate">{it.title}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">{fmtDate(it.due_date)}</div>
+                <div className="flex gap-1.5 mt-2">
+                  <button
+                    onClick={() => markDone(it.id)}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-success-soft text-success hover:opacity-80"
+                  >
+                    <Check className="size-3" /> تم
+                  </button>
+                  <button
+                    onClick={() => snooze(it.id, 1)}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-secondary text-foreground hover:opacity-80"
+                  >
+                    <Clock className="size-3" /> تأجيل يوم
+                  </button>
+                  <button
+                    onClick={() => snooze(it.id, 7)}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-secondary text-foreground hover:opacity-80"
+                  >
+                    أسبوع
+                  </button>
+                </div>
               </div>
-              <Link to="/app/reminders" className="text-primary text-xs font-semibold p-1">
+              <Link to="/app/reminders" className="text-primary text-xs font-semibold p-1" aria-label="فتح التذكيرات">
                 <ArrowLeft className="size-4" />
               </Link>
             </Card>
