@@ -12,6 +12,8 @@ import { SearchBar } from "@/components/common/SearchBar";
 import { FabButton } from "@/components/common/FabButton";
 import { DebtsHeader } from "@/features/debts/DebtsHeader";
 import { PersonRow } from "@/features/debts/PersonRow";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/")({ component: DebtsHome });
 
@@ -49,6 +51,7 @@ function DebtsHome() {
   };
 
   useEffect(() => { load(); }, [user]);
+  const pullDist = usePullToRefresh(load);
 
   const baseCurrency = currencies.find((c) => c.is_base) ?? currencies[0];
 
@@ -99,6 +102,11 @@ function DebtsHome() {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
+      {pullDist > 10 && (
+        <div className="flex justify-center text-primary" style={{ height: Math.min(pullDist, 60) }}>
+          <Loader2 className={`size-5 ${pullDist > 70 ? "animate-spin" : ""}`} style={{ transform: `rotate(${pullDist * 3}deg)` }} />
+        </div>
+      )}
       <DebtsHeader
         owed={totals.owed}
         owe={totals.owe}
