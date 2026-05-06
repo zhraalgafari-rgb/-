@@ -33,7 +33,7 @@ export function ModuleTabs() {
 
   const base = "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-lg transition-all active:scale-[0.98]";
   return (
-    <div className="bg-secondary/70 p-0.5 rounded-xl flex items-center gap-0.5 mb-3 sticky top-14 z-20 backdrop-blur shadow-card border border-border/60" role="tablist">
+    <div className="bg-secondary/70 p-0.5 rounded-xl flex items-center gap-0.5 mb-3 sticky top-12 z-20 backdrop-blur shadow-card border border-border/60" role="tablist">
       <Link
         to="/app"
         role="tab"
