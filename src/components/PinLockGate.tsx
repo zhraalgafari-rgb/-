@@ -1,18 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { hashPin, isUnlocked, markUnlocked, getLockRemaining, setLockedUntil, clearLockTimer } from "@/lib/pin";
-import { Lock, Delete } from "lucide-react";
+import {
+  hashPin, isUnlocked, markUnlocked, markLocked,
+  getLockRemaining, setLockedUntil, clearLockTimer,
+} from "@/lib/pin";
+import { Lock, Delete, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
+const AUTOLOCK_KEY = "daftarak.autolock.minutes";
+const LAST_ACTIVE_KEY = "daftarak.lastActive";
+
 export function PinLockGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [pinHash, setPinHash] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(true);
   const [pin, setPin] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [waitMs, setWaitMs] = useState(0);
   const [checking, setChecking] = useState(true);
+  const autolockMin = useRef(5);
 
   useEffect(() => {
     if (!user) { setChecking(false); return; }
@@ -23,7 +30,40 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
       if (h && !isUnlocked()) setUnlocked(false);
       setChecking(false);
     })();
+    try {
+      const v = Number(localStorage.getItem(AUTOLOCK_KEY) ?? "5");
+      autolockMin.current = isNaN(v) ? 5 : v;
+    } catch { /* ignore */ }
   }, [user]);
+
+  // Inactivity autolock: track activity, lock when hidden long enough or after interval
+  useEffect(() => {
+    if (!pinHash) return;
+    const touch = () => { try { sessionStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); } catch { /* ignore */ } };
+    touch();
+    const evs: Array<keyof DocumentEventMap> = ["click", "keydown", "touchstart", "scroll"];
+    evs.forEach((e) => document.addEventListener(e, touch, { passive: true }));
+
+    const check = () => {
+      const last = Number(sessionStorage.getItem(LAST_ACTIVE_KEY) ?? Date.now());
+      const limit = autolockMin.current * 60_000;
+      if (Date.now() - last >= limit) {
+        markLocked();
+        setUnlocked(false);
+      }
+    };
+    const onVisibility = () => { if (document.hidden) touch(); else check(); };
+    const t = setInterval(check, 30_000);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", check);
+
+    return () => {
+      evs.forEach((e) => document.removeEventListener(e, touch));
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", check);
+      clearInterval(t);
+    };
+  }, [pinHash]);
 
   useEffect(() => {
     if (unlocked) return;
@@ -47,6 +87,7 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
     if (h === pinHash) {
       markUnlocked();
       clearLockTimer();
+      try { sessionStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); } catch { /* ignore */ }
       setUnlocked(true);
       setPin("");
     } else {
@@ -66,6 +107,12 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
 
   const wait = Math.ceil(waitMs / 1000);
 
+  const forgotPin = async () => {
+    if (!confirm("نسيت الرمز؟ سيتم تسجيل خروجك. أعد الدخول لإلغاء القفل من الإعدادات.")) return;
+    markLocked();
+    await signOut();
+  };
+
   return (
     <div className="fixed inset-0 z-[100] bg-gradient-hero flex flex-col items-center justify-center text-white p-6">
       <div className="size-16 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center mb-4 shadow-glow">
@@ -75,13 +122,13 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
       <p className="text-white/80 text-sm mt-1 mb-6">{wait > 0 ? `قفل مؤقت — ${wait}s` : "للمتابعة إلى دفترك"}</p>
 
       <div className="flex gap-3 mb-8">
-        {[0,1,2,3].map((i) => (
+        {[0, 1, 2, 3].map((i) => (
           <div key={i} className={`size-4 rounded-full transition-all ${pin.length > i ? "bg-white scale-110" : "bg-white/30"}`} />
         ))}
       </div>
 
       <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
-        {["1","2","3","4","5","6","7","8","9"].map((d) => (
+        {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
           <button key={d} onClick={() => press(d)} disabled={wait > 0}
             className="h-14 rounded-2xl bg-white/15 backdrop-blur text-2xl font-bold hover:bg-white/25 active:scale-95 transition-all disabled:opacity-40">
             {d}
@@ -93,6 +140,10 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
           <Delete className="size-5" />
         </button>
       </div>
+
+      <button onClick={forgotPin} className="mt-8 inline-flex items-center gap-2 text-sm text-white/80 hover:text-white">
+        <LogOut className="size-4" /> نسيت الرمز؟ تسجيل خروج
+      </button>
     </div>
   );
 }
