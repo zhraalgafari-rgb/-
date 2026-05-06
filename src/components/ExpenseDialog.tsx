@@ -118,6 +118,8 @@ export function ExpenseDialog({ open, onOpenChange, currencies, categories, edit
     const { error } = await op;
     setBusy(false);
     if (error) return toast.error(error.message);
+    const { logAudit } = await import("@/lib/audit");
+    await logAudit(user.id, editing ? "update:expense" : "create:expense", "expense", editing?.id, { amount: payload.amount });
     toast.success(editing ? "تم التعديل" : "تمت الإضافة");
     onSuccess(); onOpenChange(false);
   };
