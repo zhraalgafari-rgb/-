@@ -46,50 +46,53 @@
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 0.75rem;
 
-  --background: oklch(0.985 0.005 240);
-  --foreground: oklch(0.22 0.05 250);
+  --background: oklch(0.985 0.006 240);
+  --foreground: oklch(0.2 0.06 255);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.05 250);
+  --card-foreground: oklch(0.2 0.06 255);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.05 250);
+  --popover-foreground: oklch(0.2 0.06 255);
 
-  --primary: oklch(0.55 0.18 245);
+  /* Deep accounting blue */
+  --primary: oklch(0.45 0.22 255);
   --primary-foreground: oklch(0.99 0.005 240);
-  --primary-glow: oklch(0.7 0.18 245 / 0.5);
+  --primary-glow: oklch(0.55 0.22 255 / 0.55);
 
-  --secondary: oklch(0.96 0.015 240);
-  --secondary-foreground: oklch(0.3 0.05 250);
+  --secondary: oklch(0.955 0.018 245);
+  --secondary-foreground: oklch(0.28 0.07 255);
 
-  --muted: oklch(0.965 0.01 240);
-  --muted-foreground: oklch(0.5 0.03 250);
+  --muted: oklch(0.96 0.012 240);
+  --muted-foreground: oklch(0.46 0.04 255);
 
-  --accent: oklch(0.95 0.04 175);
-  --accent-foreground: oklch(0.3 0.08 175);
+  --accent: oklch(0.92 0.07 180);
+  --accent-foreground: oklch(0.28 0.1 195);
 
-  --success: oklch(0.6 0.15 165);
+  /* Deep emerald (income / credit / له) */
+  --success: oklch(0.5 0.18 160);
   --success-foreground: oklch(0.99 0 0);
-  --success-soft: oklch(0.95 0.05 165);
+  --success-soft: oklch(0.93 0.07 160);
 
-  --danger: oklch(0.6 0.2 25);
+  /* Deep red (debt / debit / عليه) */
+  --danger: oklch(0.5 0.22 25);
   --danger-foreground: oklch(0.99 0 0);
-  --danger-soft: oklch(0.96 0.04 25);
+  --danger-soft: oklch(0.94 0.06 25);
 
-  --destructive: oklch(0.6 0.22 25);
+  --destructive: oklch(0.5 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.92 0.01 240);
-  --input: oklch(0.92 0.01 240);
-  --ring: oklch(0.55 0.18 245);
+  --border: oklch(0.9 0.012 245);
+  --input: oklch(0.9 0.012 245);
+  --ring: oklch(0.45 0.22 255);
 
-  --gradient-hero: linear-gradient(135deg, oklch(0.55 0.18 245), oklch(0.6 0.16 175));
-  --gradient-primary: linear-gradient(135deg, oklch(0.55 0.18 245), oklch(0.62 0.18 230));
-  --gradient-success: linear-gradient(135deg, oklch(0.6 0.15 165), oklch(0.65 0.14 175));
-  --gradient-danger: linear-gradient(135deg, oklch(0.6 0.2 25), oklch(0.62 0.2 15));
-  --gradient-card: linear-gradient(180deg, oklch(1 0 0), oklch(0.985 0.005 240));
+  --gradient-hero: linear-gradient(135deg, oklch(0.4 0.22 255), oklch(0.5 0.18 200));
+  --gradient-primary: linear-gradient(135deg, oklch(0.45 0.22 255), oklch(0.5 0.2 235));
+  --gradient-success: linear-gradient(135deg, oklch(0.5 0.18 160), oklch(0.55 0.16 175));
+  --gradient-danger: linear-gradient(135deg, oklch(0.5 0.22 25), oklch(0.55 0.22 15));
+  --gradient-card: linear-gradient(180deg, oklch(1 0 0), oklch(0.985 0.006 240));
 }
 
 .dark {
