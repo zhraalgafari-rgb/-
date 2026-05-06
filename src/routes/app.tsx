@@ -47,11 +47,11 @@ function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-20">
       <header className="bg-gradient-hero text-white sticky top-0 z-30 shadow-elevated">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/app" className="flex items-center gap-2 font-bold">
-            <div className="size-8 rounded-lg bg-white/15 backdrop-blur flex items-center justify-center">
+        <div className="max-w-3xl mx-auto px-3 h-12 flex items-center justify-between">
+          <Link to="/app" className="flex items-center gap-2 font-black text-sm">
+            <div className="size-7 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center ring-1 ring-white/15">
               <Wallet className="size-4" />
             </div>
             دفترك
