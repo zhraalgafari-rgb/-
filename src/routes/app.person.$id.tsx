@@ -218,9 +218,9 @@ function PersonPage() {
       <button
         onClick={() => { setEditingTx(null); setOpenAdd(true); }}
         aria-label="إضافة معاملة"
-        className="fixed bottom-20 left-4 z-20 size-14 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        className="fixed bottom-20 left-4 z-20 size-12 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
       >
-        <Plus className="size-6" />
+        <Plus className="size-5" />
       </button>
 
       <AddTransactionDialog
