@@ -65,14 +65,14 @@ function SettingsPage() {
           desc="السمة، اللون، حجم الخط"
           tone="accent"
         />
-        <Card className="border-0 shadow-none p-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-secondary text-primary flex items-center justify-center">
-              {theme === "dark" ? <Moon className="size-5" /> : <Sun className="size-5" />}
+        <Card className="border-0 shadow-none p-2 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center ring-1 ring-border">
+              {theme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
             </div>
             <div>
-              <div className="font-semibold text-sm">الوضع الداكن</div>
-              <div className="text-xs text-muted-foreground">تبديل سريع</div>
+              <div className="font-semibold text-[13px] leading-tight">الوضع الداكن</div>
+              <div className="text-[11px] text-muted-foreground">تبديل سريع</div>
             </div>
           </div>
           <Switch checked={theme === "dark"} onCheckedChange={toggle} />
