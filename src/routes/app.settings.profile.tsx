@@ -65,13 +65,13 @@ function ProfilePage() {
                 key={c}
                 onClick={() => setColor(c)}
                 style={{ background: c }}
-                className={`size-9 rounded-full transition-all ${color === c ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                className={`size-8 rounded-full transition-all ${color === c ? "ring-2 ring-primary ring-offset-2" : ""}`}
                 aria-label="اختر اللون"
               />
             ))}
             <button
               onClick={() => setColor(null)}
-              className={`size-9 rounded-full bg-secondary text-xs font-bold transition-all ${!color ? "ring-2 ring-primary ring-offset-2" : ""}`}
+              className={`size-8 rounded-full bg-secondary text-xs font-bold transition-all ${!color ? "ring-2 ring-primary ring-offset-2" : ""}`}
             >
               تلقائي
             </button>

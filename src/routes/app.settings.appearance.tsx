@@ -72,7 +72,7 @@ function AppearancePage() {
               <button
                 key={t.id}
                 onClick={() => set(t.id === "system" ? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light") : (t.id as any))}
-                className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all ${active ? "border-primary bg-primary/5" : "border-input bg-card"}`}
+                className={`flex flex-col items-center gap-1.5 py-2 rounded-lg border transition-all ${active ? "border-primary bg-primary/5" : "border-input bg-card"}`}
               >
                 <Icon className="size-5" />
                 <span className="text-xs font-semibold">{t.label}</span>
@@ -105,7 +105,7 @@ function AppearancePage() {
             <button
               key={s.id}
               onClick={() => pickSize(s.id)}
-              className={`py-2.5 rounded-lg font-semibold transition-all ${size === s.id ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}
+              className={`py-2 rounded-lg font-semibold transition-all ${size === s.id ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}
               style={{ fontSize: `${parseFloat(s.scale)}rem` }}
             >
               {s.label}
