@@ -122,7 +122,7 @@ function DebtsHome() {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as Sort)}
-          className="h-10 rounded-lg border bg-card px-2 text-xs font-semibold text-foreground"
+          className="h-9 rounded-lg border bg-card px-2 text-[11px] font-semibold text-foreground"
           aria-label="فرز"
         >
           <option value="active">الأكثر نشاطاً</option>
