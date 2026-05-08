@@ -39,13 +39,13 @@ function SettingsPage() {
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300">
+    <div className="space-y-3 animate-in fade-in duration-300">
       {/* Profile card */}
-      <Card className="p-4 flex items-center gap-3">
-        <Avatar name={displayName || user?.email || "?"} color={color} size="lg" />
+      <Card className="p-2.5 flex items-center gap-2.5">
+        <Avatar name={displayName || user?.email || "?"} color={color} size="md" />
         <div className="flex-1 min-w-0">
-          <div className="font-bold truncate">{displayName || "ضيف"}</div>
-          <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+          <div className="font-bold text-[13px] truncate leading-tight">{displayName || "ضيف"}</div>
+          <div className="text-[11px] text-muted-foreground truncate">{user?.email}</div>
         </div>
       </Card>
 
