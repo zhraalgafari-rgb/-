@@ -16,7 +16,7 @@ function AboutPage() {
         </div>
         <div>
           <div className="font-black text-xl">دفترك</div>
-          <div className="text-xs text-muted-foreground">إصدار 1.0.0</div>
+          <div className="text-[11px] text-muted-foreground">إصدار 1.0.0</div>
         </div>
         <p className="text-sm text-muted-foreground max-w-xs">
           تطبيق احترافي لإدارة الديون والمصاريف الشخصية بسهولة وأمان.
@@ -49,8 +49,8 @@ function Row({ icon: Icon, label, desc }: any) {
         <Icon className="size-5" />
       </div>
       <div className="flex-1 text-right">
-        <div className="font-semibold text-sm">{label}</div>
-        <div className="text-xs text-muted-foreground">{desc}</div>
+        <div className="font-semibold text-[13px] leading-tight">{label}</div>
+        <div className="text-[11px] text-muted-foreground">{desc}</div>
       </div>
     </div>
   );

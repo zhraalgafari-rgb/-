@@ -82,8 +82,8 @@ function SecurityPage() {
             <Lock className="size-4" />
           </div>
           <div className="flex-1">
-            <div className="font-semibold text-sm">قفل التطبيق برقم سري</div>
-            <div className="text-xs text-muted-foreground">{hasPin ? "مفعّل" : "غير مفعّل"}</div>
+            <div className="font-semibold text-[13px] leading-tight">قفل التطبيق برقم سري</div>
+            <div className="text-[11px] text-muted-foreground">{hasPin ? "مفعّل" : "غير مفعّل"}</div>
           </div>
         </div>
         {hasPin ? (
@@ -117,8 +117,8 @@ function SecurityPage() {
 
       <Card className="p-3 flex items-center justify-between">
         <div>
-          <div className="font-semibold text-sm">البصمة (إن أمكن)</div>
-          <div className="text-xs text-muted-foreground">استخدم بصمة الجهاز إن دعمها المتصفح</div>
+          <div className="font-semibold text-[13px] leading-tight">البصمة (إن أمكن)</div>
+          <div className="text-[11px] text-muted-foreground">استخدم بصمة الجهاز إن دعمها المتصفح</div>
         </div>
         <Switch checked={biometric} onCheckedChange={toggleBio} />
       </Card>

@@ -134,7 +134,7 @@ function DataPage() {
       </SettingsGroup>
 
       <Card className="p-3 space-y-3">
-        <div className="font-semibold text-sm">النسخ التلقائي</div>
+        <div className="font-semibold text-[13px] leading-tight">النسخ التلقائي</div>
         <div className="grid grid-cols-4 gap-2">
           {FREQS.map((f) => (
             <button key={f.v} onClick={() => setFreq(f.v)}

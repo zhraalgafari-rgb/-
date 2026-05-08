@@ -55,8 +55,8 @@ function NotificationsPage() {
             <BellRing className="size-4" />
           </div>
           <div className="flex-1">
-            <div className="font-semibold text-sm">تنبيهات المتصفح</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="font-semibold text-[13px] leading-tight">تنبيهات المتصفح</div>
+            <div className="text-[11px] text-muted-foreground">
               {permission === "granted" ? "مسموح" : permission === "denied" ? "مرفوض من المتصفح" : "بحاجة لإذن"}
             </div>
           </div>
@@ -72,8 +72,8 @@ function NotificationsPage() {
             <Clock className="size-4" />
           </div>
           <div className="flex-1">
-            <div className="font-semibold text-sm">وقت التذكير اليومي</div>
-            <div className="text-xs text-muted-foreground">سيتم فحص التذكيرات في هذا الوقت</div>
+            <div className="font-semibold text-[13px] leading-tight">وقت التذكير اليومي</div>
+            <div className="text-[11px] text-muted-foreground">سيتم فحص التذكيرات في هذا الوقت</div>
           </div>
         </div>
         <div className="space-y-1.5">
