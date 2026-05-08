@@ -47,9 +47,9 @@ function ProfilePage() {
     <div className="space-y-3">
       <PageHeader icon={User} title="الملف الشخصي" subtitle={user?.email ?? ""} back="/app/settings" />
 
-      <Card className="p-5 flex flex-col items-center gap-3">
-        <Avatar name={displayName || user?.email || "?"} color={color} size="lg" />
-        <div className="text-sm font-semibold">{displayName || "بدون اسم"}</div>
+      <Card className="p-3 flex flex-col items-center gap-2">
+        <Avatar name={displayName || user?.email || "?"} color={color} size="md" />
+        <div className="text-[13px] font-semibold">{displayName || "بدون اسم"}</div>
       </Card>
 
       <Card className="p-3 space-y-3">
