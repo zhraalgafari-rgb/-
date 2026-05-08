@@ -7,7 +7,7 @@ export const Route = createFileRoute("/app/settings/about")({ component: AboutPa
 
 function AboutPage() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader icon={Info} title="حول التطبيق" back="/app/settings" />
 
       <Card className="p-6 flex flex-col items-center gap-3 text-center">
@@ -29,7 +29,7 @@ function AboutPage() {
         <Row icon={Heart} label="صُنع بحب" desc="نقدر استخدامك للتطبيق" />
       </Card>
 
-      <Card className="p-4 space-y-2 text-xs text-muted-foreground leading-relaxed">
+      <Card className="p-3 space-y-2 text-xs text-muted-foreground leading-relaxed">
         <p className="font-semibold text-foreground">الخصوصية والأمان</p>
         <p>بياناتك مشفّرة ومحفوظة بأمان. لا نشارك أو نبيع أي معلومات شخصية.</p>
         <p>يمكنك تصدير أو حذف بياناتك في أي وقت من إعدادات البيانات.</p>
@@ -45,7 +45,7 @@ function AboutPage() {
 function Row({ icon: Icon, label, desc }: any) {
   return (
     <div className="flex items-center gap-3 p-3">
-      <div className="size-10 rounded-xl bg-secondary text-primary flex items-center justify-center">
+      <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center">
         <Icon className="size-5" />
       </div>
       <div className="flex-1 text-right">

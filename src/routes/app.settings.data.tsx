@@ -125,7 +125,7 @@ function DataPage() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader icon={Database} title="البيانات والنسخ الاحتياطي" subtitle="السحابة، التصدير، الاستيراد" back="/app/settings" />
 
       <SettingsGroup title="النسخ الاحتياطي السحابي">
@@ -133,7 +133,7 @@ function DataPage() {
         <SettingsRow icon={History} label="سجل النشاط" desc="آخر العمليات" to="/app/activity" tone="muted" />
       </SettingsGroup>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <div className="font-semibold text-sm">النسخ التلقائي</div>
         <div className="grid grid-cols-4 gap-2">
           {FREQS.map((f) => (
@@ -150,8 +150,8 @@ function DataPage() {
         <SettingsGroup title={`النسخ المحفوظة (${backups.length}/10)`}>
           {backups.map((b) => (
             <div key={b.id} className="flex items-center gap-3 p-3 hover:bg-secondary rounded-xl">
-              <div className="size-10 rounded-xl bg-secondary text-primary flex items-center justify-center shrink-0">
-                <Cloud className="size-5" />
+              <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center shrink-0">
+                <Cloud className="size-4" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-xs flex items-center gap-2">

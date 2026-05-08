@@ -44,7 +44,7 @@ function ProfilePage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader icon={User} title="الملف الشخصي" subtitle={user?.email ?? ""} back="/app/settings" />
 
       <Card className="p-5 flex flex-col items-center gap-3">
@@ -52,7 +52,7 @@ function ProfilePage() {
         <div className="text-sm font-semibold">{displayName || "بدون اسم"}</div>
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <div className="space-y-1.5">
           <Label className="text-xs">الاسم المعروض</Label>
           <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="اسمك" maxLength={60} />

@@ -73,13 +73,13 @@ function SecurityPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader icon={ShieldCheck} title="الأمان والخصوصية" subtitle="حماية بياناتك المالية" back="/app/settings" />
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-secondary text-primary flex items-center justify-center">
-            <Lock className="size-5" />
+          <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center">
+            <Lock className="size-4" />
           </div>
           <div className="flex-1">
             <div className="font-semibold text-sm">قفل التطبيق برقم سري</div>
@@ -98,7 +98,7 @@ function SecurityPage() {
       </Card>
 
       {hasPin && (
-        <Card className="p-4 space-y-3">
+        <Card className="p-3 space-y-3">
           <Label className="text-xs">القفل التلقائي بعد</Label>
           <div className="grid grid-cols-4 gap-2">
             {[1, 5, 15, 30].map((m) => (
@@ -115,7 +115,7 @@ function SecurityPage() {
         </Card>
       )}
 
-      <Card className="p-4 flex items-center justify-between">
+      <Card className="p-3 flex items-center justify-between">
         <div>
           <div className="font-semibold text-sm">البصمة (إن أمكن)</div>
           <div className="text-xs text-muted-foreground">استخدم بصمة الجهاز إن دعمها المتصفح</div>

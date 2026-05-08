@@ -55,10 +55,10 @@ function AppearancePage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader icon={Palette} title="المظهر" subtitle="خصّص ألوان وحجم خط التطبيق" back="/app/settings" />
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <Label className="text-xs">السمة</Label>
         <div className="grid grid-cols-3 gap-2">
           {[
@@ -82,7 +82,7 @@ function AppearancePage() {
         </div>
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <Label className="text-xs">اللون الأساسي</Label>
         <div className="flex flex-wrap gap-2">
           {ACCENTS.map((a) => (
@@ -90,7 +90,7 @@ function AppearancePage() {
               key={a.id}
               onClick={() => pickAccent(a.id)}
               style={{ background: a.color }}
-              className={`size-10 rounded-xl transition-all ${accent === a.id ? "ring-2 ring-primary ring-offset-2 scale-110" : ""}`}
+              className={`size-9 rounded-lg transition-all ${accent === a.id ? "ring-2 ring-primary ring-offset-2 scale-110" : ""}`}
               aria-label={a.name}
               title={a.name}
             />
@@ -98,7 +98,7 @@ function AppearancePage() {
         </div>
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <Label className="text-xs">حجم الخط</Label>
         <div className="grid grid-cols-3 gap-2">
           {SIZES.map((s) => (
