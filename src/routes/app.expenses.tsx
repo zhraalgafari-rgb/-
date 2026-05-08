@@ -101,7 +101,7 @@ function ExpensesPage() {
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300">
+    <div className="space-y-3 animate-in fade-in duration-300">
       <MonthlyExpenseHeader
         month={month}
         onMonthChange={setMonth}
