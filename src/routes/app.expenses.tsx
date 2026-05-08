@@ -117,7 +117,7 @@ function ExpensesPage() {
         <select
           value={filterCat}
           onChange={(e) => setFilterCat(e.target.value)}
-          className="h-10 rounded-lg border bg-card px-2 text-xs font-semibold max-w-[120px]"
+          className="h-9 rounded-lg border bg-card px-2 text-[11px] font-semibold max-w-[110px]"
           aria-label="تصفية بالتصنيف"
         >
           <option value="">كل التصنيفات</option>
