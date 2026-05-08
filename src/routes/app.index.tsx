@@ -101,7 +101,7 @@ function DebtsHome() {
   }, [people, q, filter, sort, personBalances]);
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300">
+    <div className="space-y-3 animate-in fade-in duration-300">
       {pullDist > 10 && (
         <div className="flex justify-center text-primary" style={{ height: Math.min(pullDist, 60) }}>
           <Loader2 className={`size-5 ${pullDist > 70 ? "animate-spin" : ""}`} style={{ transform: `rotate(${pullDist * 3}deg)` }} />
@@ -122,7 +122,7 @@ function DebtsHome() {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as Sort)}
-          className="h-10 rounded-lg border bg-card px-2 text-xs font-semibold text-foreground"
+          className="h-9 rounded-lg border bg-card px-2 text-[11px] font-semibold text-foreground"
           aria-label="فرز"
         >
           <option value="active">الأكثر نشاطاً</option>
