@@ -125,7 +125,7 @@ function DataPage() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader icon={Database} title="البيانات والنسخ الاحتياطي" subtitle="السحابة، التصدير، الاستيراد" back="/app/settings" />
 
       <SettingsGroup title="النسخ الاحتياطي السحابي">
@@ -133,8 +133,8 @@ function DataPage() {
         <SettingsRow icon={History} label="سجل النشاط" desc="آخر العمليات" to="/app/activity" tone="muted" />
       </SettingsGroup>
 
-      <Card className="p-4 space-y-3">
-        <div className="font-semibold text-sm">النسخ التلقائي</div>
+      <Card className="p-3 space-y-3">
+        <div className="font-semibold text-[13px] leading-tight">النسخ التلقائي</div>
         <div className="grid grid-cols-4 gap-2">
           {FREQS.map((f) => (
             <button key={f.v} onClick={() => setFreq(f.v)}
@@ -149,23 +149,23 @@ function DataPage() {
       {backups.length > 0 && (
         <SettingsGroup title={`النسخ المحفوظة (${backups.length}/10)`}>
           {backups.map((b) => (
-            <div key={b.id} className="flex items-center gap-3 p-3 hover:bg-secondary rounded-xl">
-              <div className="size-10 rounded-xl bg-secondary text-primary flex items-center justify-center shrink-0">
-                <Cloud className="size-5" />
+            <div key={b.id} className="flex items-center gap-2 p-2 hover:bg-secondary rounded-lg">
+              <div className="size-8 rounded-lg bg-secondary text-primary flex items-center justify-center shrink-0 ring-1 ring-border">
+                <Cloud className="size-3.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-xs flex items-center gap-2">
+                <div className="font-semibold text-[12px] flex items-center gap-1.5 leading-tight">
                   <span>{b.kind === "auto" ? "تلقائي" : "يدوي"}</span>
                   <span className="text-muted-foreground">·</span>
                   <span className="text-muted-foreground">{(b.size_bytes / 1024).toFixed(1)} KB</span>
                 </div>
-                <div className="text-[11px] text-muted-foreground">{fmtDate(b.created_at)}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">{fmtDate(b.created_at)}</div>
               </div>
-              <button onClick={() => setRestoreId(b.id)} className="text-primary p-1.5 hover:bg-primary-soft rounded-lg" aria-label="استعادة">
-                <RefreshCw className="size-4" />
+              <button onClick={() => setRestoreId(b.id)} className="text-primary p-1 hover:bg-primary/10 rounded-md" aria-label="استعادة">
+                <RefreshCw className="size-3.5" />
               </button>
-              <button onClick={() => removeBackup(b)} className="text-danger p-1.5 hover:bg-danger-soft rounded-lg" aria-label="حذف">
-                <Trash2 className="size-4" />
+              <button onClick={() => removeBackup(b)} className="text-danger p-1 hover:bg-danger-soft rounded-md" aria-label="حذف">
+                <Trash2 className="size-3.5" />
               </button>
             </div>
           ))}

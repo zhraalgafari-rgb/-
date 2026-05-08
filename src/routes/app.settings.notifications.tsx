@@ -46,17 +46,17 @@ function NotificationsPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader icon={Bell} title="الإشعارات" subtitle="تذكيرات الديون والمصاريف" back="/app/settings" />
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-secondary text-primary flex items-center justify-center">
-            <BellRing className="size-5" />
+          <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center">
+            <BellRing className="size-4" />
           </div>
           <div className="flex-1">
-            <div className="font-semibold text-sm">تنبيهات المتصفح</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="font-semibold text-[13px] leading-tight">تنبيهات المتصفح</div>
+            <div className="text-[11px] text-muted-foreground">
               {permission === "granted" ? "مسموح" : permission === "denied" ? "مرفوض من المتصفح" : "بحاجة لإذن"}
             </div>
           </div>
@@ -66,14 +66,14 @@ function NotificationsPage() {
         </div>
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-secondary text-primary flex items-center justify-center">
-            <Clock className="size-5" />
+          <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center">
+            <Clock className="size-4" />
           </div>
           <div className="flex-1">
-            <div className="font-semibold text-sm">وقت التذكير اليومي</div>
-            <div className="text-xs text-muted-foreground">سيتم فحص التذكيرات في هذا الوقت</div>
+            <div className="font-semibold text-[13px] leading-tight">وقت التذكير اليومي</div>
+            <div className="text-[11px] text-muted-foreground">سيتم فحص التذكيرات في هذا الوقت</div>
           </div>
         </div>
         <div className="space-y-1.5">

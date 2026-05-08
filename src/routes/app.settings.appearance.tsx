@@ -55,10 +55,10 @@ function AppearancePage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader icon={Palette} title="المظهر" subtitle="خصّص ألوان وحجم خط التطبيق" back="/app/settings" />
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <Label className="text-xs">السمة</Label>
         <div className="grid grid-cols-3 gap-2">
           {[
@@ -72,7 +72,7 @@ function AppearancePage() {
               <button
                 key={t.id}
                 onClick={() => set(t.id === "system" ? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light") : (t.id as any))}
-                className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all ${active ? "border-primary bg-primary/5" : "border-input bg-card"}`}
+                className={`flex flex-col items-center gap-1.5 py-2 rounded-lg border transition-all ${active ? "border-primary bg-primary/5" : "border-input bg-card"}`}
               >
                 <Icon className="size-5" />
                 <span className="text-xs font-semibold">{t.label}</span>
@@ -82,7 +82,7 @@ function AppearancePage() {
         </div>
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <Label className="text-xs">اللون الأساسي</Label>
         <div className="flex flex-wrap gap-2">
           {ACCENTS.map((a) => (
@@ -90,7 +90,7 @@ function AppearancePage() {
               key={a.id}
               onClick={() => pickAccent(a.id)}
               style={{ background: a.color }}
-              className={`size-10 rounded-xl transition-all ${accent === a.id ? "ring-2 ring-primary ring-offset-2 scale-110" : ""}`}
+              className={`size-9 rounded-lg transition-all ${accent === a.id ? "ring-2 ring-primary ring-offset-2 scale-110" : ""}`}
               aria-label={a.name}
               title={a.name}
             />
@@ -98,14 +98,14 @@ function AppearancePage() {
         </div>
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <Label className="text-xs">حجم الخط</Label>
         <div className="grid grid-cols-3 gap-2">
           {SIZES.map((s) => (
             <button
               key={s.id}
               onClick={() => pickSize(s.id)}
-              className={`py-2.5 rounded-lg font-semibold transition-all ${size === s.id ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}
+              className={`py-2 rounded-lg font-semibold transition-all ${size === s.id ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}
               style={{ fontSize: `${parseFloat(s.scale)}rem` }}
             >
               {s.label}

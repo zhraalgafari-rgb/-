@@ -44,15 +44,15 @@ function ProfilePage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <PageHeader icon={User} title="الملف الشخصي" subtitle={user?.email ?? ""} back="/app/settings" />
 
-      <Card className="p-5 flex flex-col items-center gap-3">
-        <Avatar name={displayName || user?.email || "?"} color={color} size="lg" />
-        <div className="text-sm font-semibold">{displayName || "بدون اسم"}</div>
+      <Card className="p-3 flex flex-col items-center gap-2">
+        <Avatar name={displayName || user?.email || "?"} color={color} size="md" />
+        <div className="text-[13px] font-semibold">{displayName || "بدون اسم"}</div>
       </Card>
 
-      <Card className="p-4 space-y-3">
+      <Card className="p-3 space-y-3">
         <div className="space-y-1.5">
           <Label className="text-xs">الاسم المعروض</Label>
           <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="اسمك" maxLength={60} />
@@ -65,13 +65,13 @@ function ProfilePage() {
                 key={c}
                 onClick={() => setColor(c)}
                 style={{ background: c }}
-                className={`size-9 rounded-full transition-all ${color === c ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                className={`size-8 rounded-full transition-all ${color === c ? "ring-2 ring-primary ring-offset-2" : ""}`}
                 aria-label="اختر اللون"
               />
             ))}
             <button
               onClick={() => setColor(null)}
-              className={`size-9 rounded-full bg-secondary text-xs font-bold transition-all ${!color ? "ring-2 ring-primary ring-offset-2" : ""}`}
+              className={`size-8 rounded-full bg-secondary text-xs font-bold transition-all ${!color ? "ring-2 ring-primary ring-offset-2" : ""}`}
             >
               تلقائي
             </button>

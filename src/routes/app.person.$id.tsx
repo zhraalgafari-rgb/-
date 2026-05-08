@@ -159,31 +159,31 @@ function PersonPage() {
   const isCredit = balance >= 0;
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300">
+    <div className="space-y-3 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
-        <Link to="/app" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowRight className="size-4" /> رجوع
+        <Link to="/app" className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">
+          <ArrowRight className="size-3.5" /> رجوع
         </Link>
-        <div className="flex items-center gap-1">
-          <button onClick={share} aria-label="مشاركة" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Share2 className="size-4" /></button>
-          <button onClick={shareWhatsApp} aria-label="واتساب" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-success"><MessageCircle className="size-4" /></button>
-          <button onClick={() => setEditName(true)} aria-label="تعديل" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="size-4" /></button>
-          <button onClick={() => setConfirmArchive(true)} aria-label="أرشفة" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Archive className="size-4" /></button>
-          <button onClick={() => setConfirmDelPerson(true)} aria-label="حذف" className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-danger"><Trash2 className="size-4" /></button>
+        <div className="flex items-center gap-0.5">
+          <button onClick={share} aria-label="مشاركة" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Share2 className="size-3.5" /></button>
+          <button onClick={shareWhatsApp} aria-label="واتساب" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-success"><MessageCircle className="size-3.5" /></button>
+          <button onClick={() => setEditName(true)} aria-label="تعديل" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="size-3.5" /></button>
+          <button onClick={() => setConfirmArchive(true)} aria-label="أرشفة" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Archive className="size-3.5" /></button>
+          <button onClick={() => setConfirmDelPerson(true)} aria-label="حذف" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-danger"><Trash2 className="size-3.5" /></button>
         </div>
       </div>
 
-      <div className={`rounded-2xl p-4 shadow-elevated text-white ${isCredit ? "bg-gradient-success" : "bg-gradient-danger"}`}>
-        <div className="text-xs opacity-90 mb-1">
+      <div className={`rounded-xl p-3 shadow-elevated text-white ${isCredit ? "bg-gradient-success" : "bg-gradient-danger"}`}>
+        <div className="text-[11px] opacity-90 mb-0.5">
           {name}
           {phone && <span className="ms-2 opacity-75" dir="ltr">{phone}</span>}
         </div>
         <div className="flex items-end justify-between">
           <div>
-            <div className="text-xs opacity-90">{isCredit ? "له عندك" : "عليه"}</div>
-            <div className="text-3xl font-black mt-0.5 tabular-nums">{fmtMoney(Math.abs(balance))}</div>
+            <div className="text-[10px] opacity-90">{isCredit ? "له عندك" : "عليه"}</div>
+            <div className="text-2xl font-black mt-0.5 tabular-nums leading-tight">{fmtMoney(Math.abs(balance))}</div>
           </div>
-          <div className="text-xs opacity-90">{txs.length} معاملة</div>
+          <div className="text-[10px] opacity-90">{txs.length} معاملة</div>
         </div>
       </div>
 
@@ -218,9 +218,9 @@ function PersonPage() {
       <button
         onClick={() => { setEditingTx(null); setOpenAdd(true); }}
         aria-label="إضافة معاملة"
-        className="fixed bottom-20 left-4 z-20 size-14 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        className="fixed bottom-20 left-4 z-20 size-12 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
       >
-        <Plus className="size-6" />
+        <Plus className="size-5" />
       </button>
 
       <AddTransactionDialog
