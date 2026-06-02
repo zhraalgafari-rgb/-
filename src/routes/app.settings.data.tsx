@@ -125,7 +125,7 @@ function DataPage() {
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <PageHeader icon={Database} title="البيانات والنسخ الاحتياطي" subtitle="السحابة، التصدير، الاستيراد" back="/app/settings" />
 
       <SettingsGroup title="النسخ الاحتياطي السحابي">
@@ -133,17 +133,17 @@ function DataPage() {
         <SettingsRow icon={History} label="سجل النشاط" desc="آخر العمليات" to="/app/activity" tone="muted" />
       </SettingsGroup>
 
-      <Card className="p-3 space-y-3">
-        <div className="font-semibold text-[13px] leading-tight">النسخ التلقائي</div>
-        <div className="grid grid-cols-4 gap-2">
+      <Card className="p-2.5 space-y-2">
+        <div className="font-semibold text-[12px] leading-tight">النسخ التلقائي</div>
+        <div className="grid grid-cols-4 gap-1.5">
           {FREQS.map((f) => (
             <button key={f.v} onClick={() => setFreq(f.v)}
-              className={`py-2 rounded-lg text-xs font-semibold transition-all ${frequency === f.v ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}>
+              className={`py-1.5 rounded-md text-[11px] font-semibold transition-all ${frequency === f.v ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}>
               {f.l}
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-muted-foreground">يتم النسخ تلقائياً عند فتح التطبيق وفقاً لهذه الفترة.</p>
+        <p className="text-[10px] text-muted-foreground">يتم النسخ تلقائياً عند فتح التطبيق وفقاً لهذه الفترة.</p>
       </Card>
 
       {backups.length > 0 && (
