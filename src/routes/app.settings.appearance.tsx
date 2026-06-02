@@ -55,12 +55,12 @@ function AppearancePage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <PageHeader icon={Palette} title="المظهر" subtitle="خصّص ألوان وحجم خط التطبيق" back="/app/settings" />
 
-      <Card className="p-3 space-y-3">
-        <Label className="text-xs">السمة</Label>
-        <div className="grid grid-cols-3 gap-2">
+      <Card className="p-2.5 space-y-2">
+        <Label className="text-[11px]">السمة</Label>
+        <div className="grid grid-cols-3 gap-1.5">
           {[
             { id: "light", label: "فاتح", icon: Sun },
             { id: "dark", label: "داكن", icon: Moon },
@@ -71,26 +71,26 @@ function AppearancePage() {
             return (
               <button
                 key={t.id}
-                onClick={() => set(t.id === "system" ? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light") : (t.id as any))}
-                className={`flex flex-col items-center gap-1.5 py-2 rounded-lg border transition-all ${active ? "border-primary bg-primary/5" : "border-input bg-card"}`}
+                onClick={() => set(t.id === "system" ? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light") : (t.id as "light" | "dark"))}
+                className={`flex flex-col items-center gap-1 py-1.5 rounded-md border transition-all ${active ? "border-primary bg-primary/5" : "border-input bg-card"}`}
               >
-                <Icon className="size-5" />
-                <span className="text-xs font-semibold">{t.label}</span>
+                <Icon className="size-4" />
+                <span className="text-[11px] font-semibold">{t.label}</span>
               </button>
             );
           })}
         </div>
       </Card>
 
-      <Card className="p-3 space-y-3">
-        <Label className="text-xs">اللون الأساسي</Label>
-        <div className="flex flex-wrap gap-2">
+      <Card className="p-2.5 space-y-2">
+        <Label className="text-[11px]">اللون الأساسي</Label>
+        <div className="flex flex-wrap gap-1.5">
           {ACCENTS.map((a) => (
             <button
               key={a.id}
               onClick={() => pickAccent(a.id)}
               style={{ background: a.color }}
-              className={`size-9 rounded-lg transition-all ${accent === a.id ? "ring-2 ring-primary ring-offset-2 scale-110" : ""}`}
+              className={`size-7 rounded-md transition-all ${accent === a.id ? "ring-2 ring-primary ring-offset-2 scale-110" : ""}`}
               aria-label={a.name}
               title={a.name}
             />
@@ -98,15 +98,15 @@ function AppearancePage() {
         </div>
       </Card>
 
-      <Card className="p-3 space-y-3">
-        <Label className="text-xs">حجم الخط</Label>
-        <div className="grid grid-cols-3 gap-2">
+      <Card className="p-2.5 space-y-2">
+        <Label className="text-[11px]">حجم الخط</Label>
+        <div className="grid grid-cols-3 gap-1.5">
           {SIZES.map((s) => (
             <button
               key={s.id}
               onClick={() => pickSize(s.id)}
-              className={`py-2 rounded-lg font-semibold transition-all ${size === s.id ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}
-              style={{ fontSize: `${parseFloat(s.scale)}rem` }}
+              className={`py-1.5 rounded-md font-semibold transition-all ${size === s.id ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}
+              style={{ fontSize: `${parseFloat(s.scale) * 0.85}rem` }}
             >
               {s.label}
             </button>
