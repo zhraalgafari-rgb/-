@@ -39,13 +39,13 @@ function SettingsPage() {
   };
 
   return (
-    <div className="space-y-3 animate-in fade-in duration-300">
+    <div className="space-y-2.5 animate-in fade-in duration-300">
       {/* Profile card */}
-      <Card className="p-2.5 flex items-center gap-2.5">
-        <Avatar name={displayName || user?.email || "?"} color={color} size="md" />
+      <Card className="p-2 flex items-center gap-2">
+        <Avatar name={displayName || user?.email || "?"} color={color} size="sm" />
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-[13px] truncate leading-tight">{displayName || "ضيف"}</div>
-          <div className="text-[11px] text-muted-foreground truncate">{user?.email}</div>
+          <div className="font-bold text-[12px] truncate leading-tight">{displayName || "ضيف"}</div>
+          <div className="text-[10px] text-muted-foreground truncate">{user?.email}</div>
         </div>
       </Card>
 
@@ -65,14 +65,14 @@ function SettingsPage() {
           desc="السمة، اللون، حجم الخط"
           tone="accent"
         />
-        <Card className="border-0 shadow-none p-2 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center ring-1 ring-border">
-              {theme === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
+        <Card className="border-0 shadow-none p-1.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="size-7 rounded-md bg-secondary text-primary flex items-center justify-center ring-1 ring-border">
+              {theme === "dark" ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
             </div>
             <div>
-              <div className="font-semibold text-[13px] leading-tight">الوضع الداكن</div>
-              <div className="text-[11px] text-muted-foreground">تبديل سريع</div>
+              <div className="font-semibold text-[12px] leading-tight">الوضع الداكن</div>
+              <div className="text-[10px] text-muted-foreground">تبديل سريع</div>
             </div>
           </div>
           <Switch checked={theme === "dark"} onCheckedChange={toggle} />
