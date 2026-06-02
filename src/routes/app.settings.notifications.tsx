@@ -46,49 +46,49 @@ function NotificationsPage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <PageHeader icon={Bell} title="الإشعارات" subtitle="تذكيرات الديون والمصاريف" back="/app/settings" />
 
-      <Card className="p-3 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center">
-            <BellRing className="size-4" />
+      <Card className="p-2.5 space-y-2.5">
+        <div className="flex items-center gap-2">
+          <div className="size-8 rounded-lg bg-secondary text-primary flex items-center justify-center ring-1 ring-border">
+            <BellRing className="size-3.5" />
           </div>
-          <div className="flex-1">
-            <div className="font-semibold text-[13px] leading-tight">تنبيهات المتصفح</div>
-            <div className="text-[11px] text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-[12px] leading-tight">تنبيهات المتصفح</div>
+            <div className="text-[10px] text-muted-foreground truncate">
               {permission === "granted" ? "مسموح" : permission === "denied" ? "مرفوض من المتصفح" : "بحاجة لإذن"}
             </div>
           </div>
           {permission === "granted"
             ? <Switch checked={enabled} onCheckedChange={toggle} />
-            : <Button size="sm" onClick={requestPerm} disabled={permission === "denied"}>طلب الإذن</Button>}
+            : <Button size="sm" className="h-7 text-[11px] px-2" onClick={requestPerm} disabled={permission === "denied"}>طلب الإذن</Button>}
         </div>
       </Card>
 
-      <Card className="p-3 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center">
-            <Clock className="size-4" />
+      <Card className="p-2.5 space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="size-8 rounded-lg bg-secondary text-primary flex items-center justify-center ring-1 ring-border">
+            <Clock className="size-3.5" />
           </div>
           <div className="flex-1">
-            <div className="font-semibold text-[13px] leading-tight">وقت التذكير اليومي</div>
-            <div className="text-[11px] text-muted-foreground">سيتم فحص التذكيرات في هذا الوقت</div>
+            <div className="font-semibold text-[12px] leading-tight">وقت التذكير اليومي</div>
+            <div className="text-[10px] text-muted-foreground">سيتم فحص التذكيرات في هذا الوقت</div>
           </div>
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">الوقت</Label>
+        <div className="space-y-1">
+          <Label className="text-[11px]">الوقت</Label>
           <input
             type="time"
             value={reminderTime}
             onChange={(e) => saveTime(e.target.value)}
-            className="w-full bg-secondary border border-input rounded-lg px-3 py-2 text-sm"
+            className="w-full bg-secondary border border-input rounded-md px-2.5 py-1.5 text-[13px]"
             dir="ltr"
           />
         </div>
       </Card>
 
-      <p className="text-[11px] text-muted-foreground text-center px-4">
+      <p className="text-[10px] text-muted-foreground text-center px-4">
         ملاحظة: تعتمد التنبيهات على بقاء التطبيق مفتوحاً في المتصفح.
       </p>
     </div>
