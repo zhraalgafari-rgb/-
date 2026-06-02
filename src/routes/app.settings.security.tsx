@@ -73,52 +73,57 @@ function SecurityPage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <PageHeader icon={ShieldCheck} title="الأمان والخصوصية" subtitle="حماية بياناتك المالية" back="/app/settings" />
 
-      <Card className="p-3 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="size-9 rounded-lg bg-secondary text-primary flex items-center justify-center">
-            <Lock className="size-4" />
+      <Card className="p-2.5 space-y-2.5">
+        <div className="flex items-center gap-2">
+          <div className="size-8 rounded-lg bg-secondary text-primary flex items-center justify-center ring-1 ring-border">
+            <Lock className="size-3.5" />
           </div>
           <div className="flex-1">
-            <div className="font-semibold text-[13px] leading-tight">قفل التطبيق برقم سري</div>
-            <div className="text-[11px] text-muted-foreground">{hasPin ? "مفعّل" : "غير مفعّل"}</div>
+            <div className="font-semibold text-[12px] leading-tight">قفل التطبيق برقم سري</div>
+            <div className="text-[10px] text-muted-foreground">{hasPin ? "مفعّل" : "غير مفعّل"}</div>
           </div>
         </div>
         {hasPin ? (
-          <Button variant="outline" onClick={() => setConfirmRemove(true)} className="w-full text-danger border-danger/30">إلغاء القفل</Button>
+          <Button size="sm" variant="outline" onClick={() => setConfirmRemove(true)} className="w-full h-8 text-[12px] text-danger border-danger/30">إلغاء القفل</Button>
         ) : (
-          <div className="space-y-2">
-            <Input type="password" inputMode="numeric" maxLength={4} placeholder="رقم من 4 خانات" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g,""))} dir="ltr" />
-            <Input type="password" inputMode="numeric" maxLength={4} placeholder="تأكيد الرقم" value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g,""))} dir="ltr" />
-            <Button onClick={setPinCode} disabled={busy} className="w-full bg-gradient-primary text-primary-foreground">تفعيل القفل</Button>
+          <div className="space-y-1.5">
+            <Input type="password" inputMode="numeric" maxLength={4} placeholder="رقم من 4 خانات" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g,""))} dir="ltr" className="h-9 text-sm" />
+            <Input type="password" inputMode="numeric" maxLength={4} placeholder="تأكيد الرقم" value={pin2} onChange={(e) => setPin2(e.target.value.replace(/\D/g,""))} dir="ltr" className="h-9 text-sm" />
+            <Button size="sm" onClick={setPinCode} disabled={busy} className="w-full h-8 text-[12px] bg-gradient-primary text-primary-foreground">تفعيل القفل</Button>
           </div>
         )}
       </Card>
 
       {hasPin && (
-        <Card className="p-3 space-y-3">
-          <Label className="text-xs">القفل التلقائي بعد</Label>
-          <div className="grid grid-cols-4 gap-2">
+        <Card className="p-2.5 space-y-2">
+          <Label className="text-[11px]">القفل التلقائي بعد</Label>
+          <div className="grid grid-cols-4 gap-1.5">
             {[1, 5, 15, 30].map((m) => (
               <button
                 key={m}
                 onClick={() => saveAutolock(m)}
-                className={`py-2 rounded-lg text-sm font-semibold transition-all ${autolock === m ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}
+                className={`py-1.5 rounded-md text-[12px] font-semibold transition-all ${autolock === m ? "bg-gradient-primary text-primary-foreground shadow-glow" : "bg-secondary text-muted-foreground"}`}
               >
                 {m} د
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-muted-foreground">يقفل التطبيق بعد عدم النشاط لهذه المدة.</p>
+          <p className="text-[10px] text-muted-foreground">يقفل التطبيق بعد عدم النشاط لهذه المدة.</p>
         </Card>
       )}
 
-      <Card className="p-3 flex items-center justify-between">
-        <div>
-          <div className="font-semibold text-[13px] leading-tight">البصمة (إن أمكن)</div>
-          <div className="text-[11px] text-muted-foreground">استخدم بصمة الجهاز إن دعمها المتصفح</div>
+      <Card className="p-2.5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="size-8 rounded-lg bg-secondary text-primary flex items-center justify-center ring-1 ring-border shrink-0">
+            <ShieldCheck className="size-3.5" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-[12px] leading-tight">البصمة (إن أمكن)</div>
+            <div className="text-[10px] text-muted-foreground truncate">استخدم بصمة الجهاز إن دعمها المتصفح</div>
+          </div>
         </div>
         <Switch checked={biometric} onCheckedChange={toggleBio} />
       </Card>
