@@ -44,40 +44,40 @@ function ProfilePage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <PageHeader icon={User} title="الملف الشخصي" subtitle={user?.email ?? ""} back="/app/settings" />
 
-      <Card className="p-3 flex flex-col items-center gap-2">
+      <Card className="p-2.5 flex flex-col items-center gap-1.5">
         <Avatar name={displayName || user?.email || "?"} color={color} size="md" />
-        <div className="text-[13px] font-semibold">{displayName || "بدون اسم"}</div>
+        <div className="text-[12px] font-semibold">{displayName || "بدون اسم"}</div>
       </Card>
 
-      <Card className="p-3 space-y-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs">الاسم المعروض</Label>
-          <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="اسمك" maxLength={60} />
+      <Card className="p-2.5 space-y-2.5">
+        <div className="space-y-1">
+          <Label className="text-[11px]">الاسم المعروض</Label>
+          <Input className="h-9 text-sm" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="اسمك" maxLength={60} />
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">لون الأفاتار</Label>
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-1">
+          <Label className="text-[11px]">لون الأفاتار</Label>
+          <div className="flex flex-wrap gap-1.5">
             {COLORS.map((c) => (
               <button
                 key={c}
                 onClick={() => setColor(c)}
                 style={{ background: c }}
-                className={`size-8 rounded-full transition-all ${color === c ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                className={`size-7 rounded-full transition-all ${color === c ? "ring-2 ring-primary ring-offset-2" : ""}`}
                 aria-label="اختر اللون"
               />
             ))}
             <button
               onClick={() => setColor(null)}
-              className={`size-8 rounded-full bg-secondary text-xs font-bold transition-all ${!color ? "ring-2 ring-primary ring-offset-2" : ""}`}
+              className={`size-7 rounded-full bg-secondary text-[10px] font-bold transition-all ${!color ? "ring-2 ring-primary ring-offset-2" : ""}`}
             >
               تلقائي
             </button>
           </div>
         </div>
-        <Button onClick={save} disabled={busy} className="w-full bg-gradient-primary text-primary-foreground">حفظ</Button>
+        <Button size="sm" onClick={save} disabled={busy} className="w-full h-8 text-[12px] bg-gradient-primary text-primary-foreground">حفظ</Button>
       </Card>
     </div>
   );
