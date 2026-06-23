@@ -23,6 +23,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [user, loading]);
 
+  if (needs === null) return null;
   if (needs) return <OnboardingFlow onDone={() => setNeeds(false)} />;
   return <>{children}</>;
 }

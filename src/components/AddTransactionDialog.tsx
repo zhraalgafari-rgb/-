@@ -100,7 +100,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
         : await supabase.from("transactions").insert(payload);
       if (te) throw te;
       const { logAudit } = await import("@/lib/audit");
-      await logAudit(user.id, editing ? "update:transaction" : "create:transaction", "transaction", editing?.id, { amount: payload.amount, direction: payload.direction });
+      await logAudit(user.id, editing ? "update" : "create", "transaction", editing?.id, { amount: payload.amount, direction: payload.direction });
       toast.success(editing ? "تم التعديل" : "تمت الإضافة");
       onSuccess();
       onOpenChange(false);

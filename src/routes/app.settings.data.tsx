@@ -197,8 +197,6 @@ function DataPage() {
         description="سيتم دمج بيانات النسخة مع بياناتك الحالية. لن يُحذف شيء."
         confirmLabel={busy ? "جارٍ..." : "استعادة"} onConfirm={restore}
       />
-      <Link to="/app/settings" className="hidden">.</Link>
-      <Button className="hidden">_</Button>
     </div>
   );
 }
