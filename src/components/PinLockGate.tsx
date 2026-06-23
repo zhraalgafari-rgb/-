@@ -52,7 +52,7 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
         setUnlocked(false);
       }
     };
-    const onVisibility = () => { if (document.hidden) touch(); else check(); };
+    const onVisibility = () => { if (document.hidden) check(); else touch(); };
     const t = setInterval(check, 30_000);
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", check);

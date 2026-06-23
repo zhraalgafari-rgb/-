@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Wallet, TrendingUp, Wallet as WalletIcon, Bell, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Wallet, TrendingUp, Bell, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface Currency { id: string; name: string; symbol: string; is_base: boolean }
@@ -20,7 +20,7 @@ const SLIDES = [
     desc: "سجّل المعاملات بسهولة مع أكثر من عملة، واطّلع على رصيد كل شخص لحظياً.",
   },
   {
-    icon: WalletIcon,
+    icon: Wallet,
     title: "نظّم مصاريفك",
     desc: "تصنيفات قابلة للتخصيص، ميزانية شهرية، وتقارير ذكية ترشد قراراتك.",
   },

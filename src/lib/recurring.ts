@@ -28,48 +28,55 @@ function advance(d: Date, freq: Rule["frequency"]): Date {
 /** Process all due recurring rules for the current user. Returns count of generated entries. */
 export async function processDueRecurring(userId: string): Promise<number> {
   const now = new Date();
-  const { data: rules } = await supabase
+  const { data: rules, error: fetchErr } = await supabase
     .from("recurring_rules")
     .select("*")
+    .eq("user_id", userId)
     .eq("is_active", true)
     .lte("next_run", now.toISOString());
 
-  if (!rules || rules.length === 0) return 0;
+  if (fetchErr || !rules || rules.length === 0) return 0;
   let count = 0;
 
   for (const r of rules as unknown as Rule[]) {
-    let next = new Date(r.next_run);
-    // Generate as many missed entries as needed (cap 24 to avoid runaways)
-    let safety = 0;
-    while (next <= now && safety < 24) {
-      if (r.kind === "expense") {
-        await supabase.from("expenses").insert({
-          user_id: userId,
-          amount: r.amount,
-          currency_id: r.currency_id,
-          category_id: r.category_id,
-          note: r.note ?? r.title,
-          expense_date: next.toISOString(),
-        });
-      } else if (r.kind === "transaction" && r.person_id && r.direction) {
-        await supabase.from("transactions").insert({
-          user_id: userId,
-          person_id: r.person_id,
-          amount: r.amount,
-          currency_id: r.currency_id,
-          direction: r.direction,
-          details: r.note ?? r.title,
-          transaction_date: next.toISOString(),
-        });
+    try {
+      let next = new Date(r.next_run);
+      // Generate as many missed entries as needed (cap 24 to avoid runaways)
+      let safety = 0;
+      while (next <= now && safety < 24) {
+        if (r.kind === "expense") {
+          const { error } = await supabase.from("expenses").insert({
+            user_id: userId,
+            amount: r.amount,
+            currency_id: r.currency_id,
+            category_id: r.category_id,
+            note: r.note ?? r.title,
+            expense_date: next.toISOString(),
+          });
+          if (error) { console.error("recurring expense insert failed", error); break; }
+        } else if (r.kind === "transaction" && r.person_id && r.direction) {
+          const { error } = await supabase.from("transactions").insert({
+            user_id: userId,
+            person_id: r.person_id,
+            amount: r.amount,
+            currency_id: r.currency_id,
+            direction: r.direction,
+            details: r.note ?? r.title,
+            transaction_date: next.toISOString(),
+          });
+          if (error) { console.error("recurring transaction insert failed", error); break; }
+        }
+        count++;
+        next = advance(next, r.frequency);
+        safety++;
       }
-      count++;
-      next = advance(next, r.frequency);
-      safety++;
+      await supabase.from("recurring_rules").update({
+        next_run: next.toISOString(),
+        last_run: now.toISOString(),
+      }).eq("id", r.id);
+    } catch (e) {
+      console.error("recurring rule failed", r.id, e);
     }
-    await supabase.from("recurring_rules").update({
-      next_run: next.toISOString(),
-      last_run: now.toISOString(),
-    }).eq("id", r.id);
   }
   return count;
 }

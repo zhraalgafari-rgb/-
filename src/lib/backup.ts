@@ -57,8 +57,21 @@ export async function restoreFromSnapshot(userId: string, snap: BackupSnapshot, 
     const tables = ["transactions", "expenses", "reminders", "recurring_rules", "budgets", "people"];
     for (const t of tables) await (supabase.from(t as never) as never as { delete: () => { eq: (k: string, v: string) => Promise<unknown> } }).delete().eq("user_id", userId);
   }
+  // Lookup tables (currencies, expense_categories) keep their original IDs via upsert
+  // so FK references in transactions/expenses stay valid.
+  const lookupMap: Array<[string, unknown[]]> = [
+    ["currencies", snap.currencies],
+    ["expense_categories", snap.categories],
+  ];
+  for (const [table, rows] of lookupMap) {
+    if (!Array.isArray(rows) || !rows.length) continue;
+    const cleaned = rows.map((r) => ({ ...(r as Record<string, unknown>), user_id: userId }));
+    await (supabase.from(table as never) as never as { upsert: (rows: unknown[], opts: { onConflict: string }) => Promise<{ error: unknown }> })
+      .upsert(cleaned, { onConflict: "id" });
+  }
+
   const map: Array<[string, unknown[]]> = [
-    ["people", snap.people], ["currencies", snap.currencies], ["expense_categories", snap.categories],
+    ["people", snap.people],
     ["transactions", snap.transactions], ["expenses", snap.expenses],
     ["budgets", snap.budgets], ["reminders", snap.reminders], ["recurring_rules", snap.recurring],
   ];

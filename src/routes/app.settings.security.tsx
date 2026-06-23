@@ -115,17 +115,20 @@ function SecurityPage() {
         </Card>
       )}
 
-      <Card className="p-2.5 flex items-center justify-between gap-2">
+      <Card className="p-2.5 flex items-center justify-between gap-2 opacity-70">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="size-8 rounded-lg bg-secondary text-primary flex items-center justify-center ring-1 ring-border shrink-0">
+          <div className="size-8 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center ring-1 ring-border shrink-0">
             <ShieldCheck className="size-3.5" />
           </div>
           <div className="min-w-0">
-            <div className="font-semibold text-[12px] leading-tight">البصمة (إن أمكن)</div>
-            <div className="text-[10px] text-muted-foreground truncate">استخدم بصمة الجهاز إن دعمها المتصفح</div>
+            <div className="font-semibold text-[12px] leading-tight flex items-center gap-1.5">
+              البصمة
+              <span className="text-[9px] font-bold bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full">قريباً</span>
+            </div>
+            <div className="text-[10px] text-muted-foreground truncate">سيتم دعم البصمة عبر WebAuthn قريباً</div>
           </div>
         </div>
-        <Switch checked={biometric} onCheckedChange={toggleBio} />
+        <Switch checked={false} disabled />
       </Card>
 
       <ConfirmDialog

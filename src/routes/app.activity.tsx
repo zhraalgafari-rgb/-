@@ -14,10 +14,13 @@ interface Row { id: string; action: string; entity: string; created_at: string; 
 
 const LABEL: Record<string, string> = {
   "create:transaction": "إضافة معاملة",
+  "update:transaction": "تعديل معاملة",
   "delete:transaction": "حذف معاملة",
   "create:expense": "إضافة مصروف",
+  "update:expense": "تعديل مصروف",
   "delete:expense": "حذف مصروف",
   "create:person": "إضافة شخص",
+  "update:person": "تعديل شخص",
   "archive:person": "أرشفة شخص",
   "restore:person": "استعادة شخص",
   "backup:create": "إنشاء نسخة احتياطية",
