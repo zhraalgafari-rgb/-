@@ -42,8 +42,15 @@ const POLLED_KEY = "daftarak.notif.polledAt";
 export async function pollAndNotify(userId: string) {
   const enabled = localStorage.getItem("daftarak.notif.enabled") === "1";
   if (!enabled) return;
+  // Honour configured daily reminder time: only fire once per day, after the chosen hh:mm.
+  const time = localStorage.getItem("daftarak.notif.time") ?? "09:00";
+  const [hh, mm] = time.split(":").map((x) => Number(x) || 0);
+  const now = new Date();
+  const slot = new Date(now); slot.setHours(hh, mm, 0, 0);
+  if (now < slot) return;
   const last = Number(localStorage.getItem(POLLED_KEY) ?? 0);
-  if (Date.now() - last < 30 * 60 * 1000) return;
+  // Skip if we already notified during this day's slot window.
+  if (last && last >= slot.getTime()) return;
   const items = await fetchPending(userId);
   if (items.length > 0) showLocalNotification("دفترك", `لديك ${items.length} تذكيراً مستحقاً`);
   localStorage.setItem(POLLED_KEY, String(Date.now()));
