@@ -12,9 +12,9 @@ export function FabButton({ onClick, icon: Icon = Plus, label = "إضافة" }: 
     <button
       onClick={onClick}
       aria-label={label}
-      className="fixed bottom-20 left-4 z-20 size-14 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+      className="fixed bottom-16 left-3 z-20 size-11 rounded-full bg-gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
     >
-      <Icon className="size-6" />
+      <Icon className="size-[18px]" />
     </button>
   );
 }

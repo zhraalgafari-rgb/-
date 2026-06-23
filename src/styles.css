@@ -122,13 +122,22 @@
 
 @layer base {
   * { border-color: var(--color-border); }
-  html { direction: rtl; }
+  html {
+    direction: rtl;
+    /* Micro-scale: shrink the root rem so all rem-based spacing, text and sizing
+       compresses proportionally for a denser, smartphone-grade UI. */
+    font-size: 14px;
+  }
+  @media (min-width: 768px) {
+    html { font-size: 15px; }
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  input, select, textarea, button { font-size: inherit; }
 }
 
 @layer utilities {
