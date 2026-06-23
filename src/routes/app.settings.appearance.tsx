@@ -67,11 +67,11 @@ function AppearancePage() {
             { id: "system", label: "تلقائي", icon: Monitor },
           ].map((t) => {
             const Icon = t.icon;
-            const active = theme === t.id || (t.id === "system" && false);
+            const active = theme === t.id;
             return (
               <button
                 key={t.id}
-                onClick={() => set(t.id === "system" ? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light") : (t.id as "light" | "dark"))}
+                onClick={() => set(t.id as "light" | "dark" | "system")}
                 className={`flex flex-col items-center gap-1 py-1.5 rounded-md border transition-all ${active ? "border-primary bg-primary/5" : "border-input bg-card"}`}
               >
                 <Icon className="size-4" />
