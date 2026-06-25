@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-r
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { ArrowRight, Plus, Trash2, Pencil, Share2, MessageCircle, Archive } from "lucide-react";
+import { ArrowRight, Plus, Trash2, Pencil, Share2, MessageCircle, Archive, FileText, FileSpreadsheet } from "lucide-react";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { TransactionRow } from "@/features/debts/TransactionRow";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { exportPersonStatementPDF } from "@/lib/io/exportPdf";
+import { exportPersonToExcel } from "@/lib/io/exportExcel";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
@@ -101,9 +103,21 @@ function PersonPage() {
 
   const delTx = async () => {
     if (!delTxId) return;
+    const tx = txs.find((t) => t.id === delTxId);
     const { error } = await supabase.from("transactions").delete().eq("id", delTxId);
     if (error) { toast.error(error.message); return; }
-    toast.success("تم الحذف"); load();
+    setDelTxId(null);
+    toast.success("تم الحذف", {
+      action: tx ? {
+        label: "تراجع",
+        onClick: async () => {
+          const { id: _id, ...rest } = tx;
+          await supabase.from("transactions").insert({ ...rest, user_id: user?.id });
+          toast.success("تم الاسترجاع"); load();
+        },
+      } : undefined,
+    });
+    load();
   };
 
   const archivePerson = async () => {
@@ -165,6 +179,8 @@ function PersonPage() {
           <ArrowRight className="size-3.5" /> رجوع
         </Link>
         <div className="flex items-center gap-0.5">
+          <button onClick={() => exportPersonStatementPDF({ personName: name, phone, txs, currencies, balance })} aria-label="PDF" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-danger"><FileText className="size-3.5" /></button>
+          <button onClick={() => exportPersonToExcel(id, name)} aria-label="Excel" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-success"><FileSpreadsheet className="size-3.5" /></button>
           <button onClick={share} aria-label="مشاركة" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Share2 className="size-3.5" /></button>
           <button onClick={shareWhatsApp} aria-label="واتساب" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-success"><MessageCircle className="size-3.5" /></button>
           <button onClick={() => setEditName(true)} aria-label="تعديل" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="size-3.5" /></button>
