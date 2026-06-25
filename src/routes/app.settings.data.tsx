@@ -8,11 +8,13 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { SettingsRow } from "@/components/common/SettingsRow";
 import { SettingsGroup } from "@/components/common/SettingsGroup";
-import { Database, Download, Upload, FileSpreadsheet, Trash2, Cloud, RefreshCw, History } from "lucide-react";
+import { Database, Download, Upload, FileSpreadsheet, Trash2, Cloud, RefreshCw, History, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
   buildSnapshot, uploadBackup, listBackups, downloadBackup, deleteBackup, restoreFromSnapshot,
 } from "@/lib/backup";
+import { exportAllToExcel } from "@/lib/io/exportExcel";
+import { ImportWizard } from "@/components/import/ImportWizard";
 import { fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/app/settings/data")({ component: DataPage });
@@ -26,6 +28,7 @@ function DataPage() {
   const [busy, setBusy] = useState(false);
   const [backups, setBackups] = useState<Backup[]>([]);
   const [frequency, setFrequency] = useState<"off" | "daily" | "weekly" | "monthly">("off");
+  const [importOpen, setImportOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const loadBackups = async () => {
@@ -173,10 +176,12 @@ function DataPage() {
       )}
 
       <SettingsGroup title="التصدير والاستيراد المحلي">
+        <SettingsRow icon={FileSpreadsheet} label="تصدير شامل إلى Excel" desc="أشخاص + معاملات + مصاريف" tone="success" onClick={async () => { if (!user) return; setBusy(true); await exportAllToExcel(user.id); setBusy(false); toast.success("تم التصدير"); }} />
+        <SettingsRow icon={Upload} label="استيراد معاملات من Excel" desc=".xlsx أو .csv — مع معاينة" tone="accent" onClick={() => setImportOpen(true)} />
         <SettingsRow icon={Download} label="نسخة احتياطية كاملة (JSON)" desc="تحميل ملف على جهازك" tone="primary" onClick={exportJSON} />
-        <SettingsRow icon={FileSpreadsheet} label="تصدير المعاملات (CSV)" desc="ديون فقط" tone="success" onClick={() => exportCSV("transactions")} />
-        <SettingsRow icon={FileSpreadsheet} label="تصدير المصاريف (CSV)" desc="مصاريف فقط" tone="success" onClick={() => exportCSV("expenses")} />
-        <SettingsRow icon={Upload} label="استيراد من نسخة احتياطية" desc="ملف JSON" tone="accent" onClick={() => fileRef.current?.click()} />
+        <SettingsRow icon={FileText} label="تصدير المعاملات (CSV)" desc="ديون فقط" onClick={() => exportCSV("transactions")} />
+        <SettingsRow icon={FileText} label="تصدير المصاريف (CSV)" desc="مصاريف فقط" onClick={() => exportCSV("expenses")} />
+        <SettingsRow icon={Upload} label="استيراد من نسخة JSON" desc="استعادة من ملف نسخة احتياطية" onClick={() => fileRef.current?.click()} />
       </SettingsGroup>
 
       <input ref={fileRef} type="file" accept="application/json" hidden onChange={handleImport} />
@@ -197,6 +202,7 @@ function DataPage() {
         description="سيتم دمج بيانات النسخة مع بياناتك الحالية. لن يُحذف شيء."
         confirmLabel={busy ? "جارٍ..." : "استعادة"} onConfirm={restore}
       />
+      <ImportWizard open={importOpen} onOpenChange={setImportOpen} onDone={loadBackups} />
     </div>
   );
 }
