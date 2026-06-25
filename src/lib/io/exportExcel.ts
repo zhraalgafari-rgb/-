@@ -10,7 +10,7 @@ function download(blob: Blob, name: string) {
 
 interface PersonRow { id: string; name: string; phone: string | null }
 interface TxRow { person_id: string; amount: number; direction: string; transaction_date: string; details: string | null; currency_id: string }
-interface ExpRow { amount: number; expense_date: string; description: string | null; category_id: string; currency_id: string }
+interface ExpRow { amount: number; expense_date: string; note: string | null; category_id: string; currency_id: string }
 interface CurRow { id: string; name: string; symbol: string; rate: number }
 interface CatRow { id: string; name: string }
 
@@ -18,7 +18,7 @@ export async function exportAllToExcel(userId: string, fileName = `daftarak-${Da
   const [{ data: people }, { data: txs }, { data: expenses }, { data: currencies }, { data: cats }] = await Promise.all([
     supabase.from("people").select("id,name,phone").eq("user_id", userId),
     supabase.from("transactions").select("person_id,amount,direction,transaction_date,details,currency_id").eq("user_id", userId),
-    supabase.from("expenses").select("amount,expense_date,description,category_id,currency_id").eq("user_id", userId),
+    supabase.from("expenses").select("amount,expense_date,note,category_id,currency_id").eq("user_id", userId),
     supabase.from("currencies").select("id,name,symbol,rate").eq("user_id", userId),
     supabase.from("expense_categories").select("id,name").eq("user_id", userId),
   ]);
@@ -44,12 +44,12 @@ export async function exportAllToExcel(userId: string, fileName = `daftarak-${Da
     "التفاصيل": t.details ?? "",
   }));
 
-  const expSheet = ((expenses as ExpRow[]) ?? []).map((e) => ({
+  const expSheet = ((expenses as unknown as ExpRow[]) ?? []).map((e) => ({
     "التاريخ": new Date(e.expense_date).toLocaleDateString("ar-EG"),
     "التصنيف": catMap.get(e.category_id)?.name ?? "—",
     "المبلغ": Number(e.amount),
     "العملة": cMap.get(e.currency_id)?.name ?? "",
-    "الوصف": e.description ?? "",
+    "الوصف": e.note ?? "",
   }));
 
   const wb = XLSX.utils.book_new();
