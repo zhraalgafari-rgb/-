@@ -112,7 +112,7 @@ function PersonPage() {
         label: "تراجع",
         onClick: async () => {
           const { id: _id, ...rest } = tx;
-          await supabase.from("transactions").insert({ ...rest, user_id: user?.id });
+          await supabase.from("transactions").insert({ ...rest, user_id: user?.id ?? "" } as never);
           toast.success("تم الاسترجاع"); load();
         },
       } : undefined,
