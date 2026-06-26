@@ -48,7 +48,7 @@ function SearchPage() {
 
   return (
     <div className="space-y-3">
-      <PageHeader title="بحث شامل" subtitle="ابحث في الأشخاص والمعاملات والمصاريف" />
+      <PageHeader icon={Search} title="بحث شامل" subtitle="ابحث في الأشخاص والمعاملات والمصاريف" />
       <SearchBar value={q} onChange={setQ} placeholder="اكتب اسم، مبلغ، تفاصيل..." />
 
       {!term ? (
