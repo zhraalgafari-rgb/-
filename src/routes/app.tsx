@@ -8,6 +8,7 @@ import { ModuleTabs } from "@/components/common/ModuleTabs";
 import { BadgeCount } from "@/components/common/BadgeCount";
 import { fetchPending, pollAndNotify } from "@/lib/notifications";
 import { maybeRunAutoBackup } from "@/lib/backup";
+import { syncRemindersFromTransactions } from "@/lib/reminders";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
@@ -24,6 +25,7 @@ function AppLayout() {
     if (!user) return;
     let cancelled = false;
     (async () => {
+      await syncRemindersFromTransactions(user.id).catch(() => 0);
       const items = await fetchPending(user.id);
       if (!cancelled) setPending(items.length);
       const { data } = await supabase.from("profiles").select("backup_frequency").eq("user_id", user.id).maybeSingle();

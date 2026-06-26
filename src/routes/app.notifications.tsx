@@ -32,16 +32,25 @@ function NotificationsCenter() {
     })();
   }, [user, load]);
 
-  const markDone = async (id: string) => {
-    await supabase.from("reminders").update({ is_done: true }).eq("id", id);
-    setItems((xs) => xs.filter((x) => x.id !== id));
-    toast.success("تم");
+  const markDone = async (it: PendingItem) => {
+    if (it.kind === "overdue" && it.transaction_id) {
+      await supabase.from("transactions").update({ is_paid: true }).eq("id", it.transaction_id);
+      toast.success("تم تعليم الدين كمسدّد");
+    } else {
+      await supabase.from("reminders").update({ is_done: true }).eq("id", it.id);
+      toast.success("تم");
+    }
+    setItems((xs) => xs.filter((x) => x.id !== it.id));
   };
 
-  const snooze = async (id: string, days = 1) => {
+  const snooze = async (it: PendingItem, days = 1) => {
     const d = new Date(); d.setDate(d.getDate() + days);
-    await supabase.from("reminders").update({ due_date: d.toISOString() }).eq("id", id);
-    setItems((xs) => xs.filter((x) => x.id !== id));
+    if (it.kind === "overdue" && it.transaction_id) {
+      await supabase.from("transactions").update({ due_date: d.toISOString().slice(0, 10) }).eq("id", it.transaction_id);
+    } else {
+      await supabase.from("reminders").update({ due_date: d.toISOString(), snoozed_until: d.toISOString() }).eq("id", it.id);
+    }
+    setItems((xs) => xs.filter((x) => x.id !== it.id));
     toast.success(`مؤجل ${days} يوم`);
   };
 
@@ -65,19 +74,19 @@ function NotificationsCenter() {
                 <div className="text-[11px] text-muted-foreground mt-0.5">{fmtDate(it.due_date)}</div>
                 <div className="flex gap-1.5 mt-2">
                   <button
-                    onClick={() => markDone(it.id)}
+                    onClick={() => markDone(it)}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-success-soft text-success hover:opacity-80"
                   >
                     <Check className="size-3" /> تم
                   </button>
                   <button
-                    onClick={() => snooze(it.id, 1)}
+                    onClick={() => snooze(it, 1)}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-secondary text-foreground hover:opacity-80"
                   >
                     <Clock className="size-3" /> تأجيل يوم
                   </button>
                   <button
-                    onClick={() => snooze(it.id, 7)}
+                    onClick={() => snooze(it, 7)}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-secondary text-foreground hover:opacity-80"
                   >
                     أسبوع
