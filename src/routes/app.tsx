@@ -8,6 +8,7 @@ import { ModuleTabs } from "@/components/common/ModuleTabs";
 import { BadgeCount } from "@/components/common/BadgeCount";
 import { fetchPending, pollAndNotify } from "@/lib/notifications";
 import { maybeRunAutoBackup } from "@/lib/backup";
+import { syncRemindersFromTransactions } from "@/lib/reminders";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
