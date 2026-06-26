@@ -204,6 +204,7 @@ export type Database = {
         Row: {
           avatar_color: string | null
           created_at: string
+          credit_limit: number | null
           id: string
           is_archived: boolean
           name: string
@@ -215,6 +216,7 @@ export type Database = {
         Insert: {
           avatar_color?: string | null
           created_at?: string
+          credit_limit?: number | null
           id?: string
           is_archived?: boolean
           name: string
@@ -226,6 +228,7 @@ export type Database = {
         Update: {
           avatar_color?: string | null
           created_at?: string
+          credit_limit?: number | null
           id?: string
           is_archived?: boolean
           name?: string
@@ -375,7 +378,9 @@ export type Database = {
           currency_id: string
           details: string | null
           direction: string
+          due_date: string | null
           id: string
+          is_paid: boolean
           person_id: string
           transaction_date: string
           user_id: string
@@ -386,7 +391,9 @@ export type Database = {
           currency_id: string
           details?: string | null
           direction: string
+          due_date?: string | null
           id?: string
+          is_paid?: boolean
           person_id: string
           transaction_date?: string
           user_id: string
@@ -397,7 +404,9 @@ export type Database = {
           currency_id?: string
           details?: string | null
           direction?: string
+          due_date?: string | null
           id?: string
+          is_paid?: boolean
           person_id?: string
           transaction_date?: string
           user_id?: string
