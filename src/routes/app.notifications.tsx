@@ -32,16 +32,25 @@ function NotificationsCenter() {
     })();
   }, [user, load]);
 
-  const markDone = async (id: string) => {
-    await supabase.from("reminders").update({ is_done: true }).eq("id", id);
-    setItems((xs) => xs.filter((x) => x.id !== id));
-    toast.success("تم");
+  const markDone = async (it: PendingItem) => {
+    if (it.kind === "overdue" && it.transaction_id) {
+      await supabase.from("transactions").update({ is_paid: true }).eq("id", it.transaction_id);
+      toast.success("تم تعليم الدين كمسدّد");
+    } else {
+      await supabase.from("reminders").update({ is_done: true }).eq("id", it.id);
+      toast.success("تم");
+    }
+    setItems((xs) => xs.filter((x) => x.id !== it.id));
   };
 
-  const snooze = async (id: string, days = 1) => {
+  const snooze = async (it: PendingItem, days = 1) => {
     const d = new Date(); d.setDate(d.getDate() + days);
-    await supabase.from("reminders").update({ due_date: d.toISOString() }).eq("id", id);
-    setItems((xs) => xs.filter((x) => x.id !== id));
+    if (it.kind === "overdue" && it.transaction_id) {
+      await supabase.from("transactions").update({ due_date: d.toISOString().slice(0, 10) }).eq("id", it.transaction_id);
+    } else {
+      await supabase.from("reminders").update({ due_date: d.toISOString(), snoozed_until: d.toISOString() }).eq("id", it.id);
+    }
+    setItems((xs) => xs.filter((x) => x.id !== it.id));
     toast.success(`مؤجل ${days} يوم`);
   };
 
