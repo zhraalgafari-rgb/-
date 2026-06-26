@@ -26,6 +26,7 @@ interface EditingTx {
   currency_id: string;
   details: string | null;
   transaction_date: string;
+  due_date?: string | null;
 }
 
 interface Props {
@@ -48,6 +49,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [currencyId, setCurrencyId] = useState<string>("");
   const [date, setDate] = useState<string>("");
+  const [dueDate, setDueDate] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -60,6 +62,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
       setDirection(editing.direction as any);
       setCurrencyId(editing.currency_id);
       setDate(new Date(editing.transaction_date).toISOString().slice(0, 16));
+      setDueDate(editing.due_date ? editing.due_date.slice(0, 10) : "");
     } else {
       setPersonId(defaultPersonId ?? "");
       setNewName("");
@@ -68,6 +71,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
       const base = currencies.find((c) => c.is_base) ?? currencies[0];
       setCurrencyId(base?.id ?? "");
       setDate(new Date().toISOString().slice(0, 16));
+      setDueDate("");
     }
   }, [open, defaultPersonId, currencies, editing]);
 
@@ -94,6 +98,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
         direction,
         details: details.trim() || null,
         transaction_date: new Date(date).toISOString(),
+        due_date: dueDate || null,
       };
       const { error: te } = editing
         ? await supabase.from("transactions").update(payload).eq("id", editing.id)
@@ -171,9 +176,15 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>التاريخ والوقت</Label>
-            <Input type="datetime-local" dir="ltr" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>التاريخ والوقت</Label>
+              <Input type="datetime-local" dir="ltr" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>تاريخ الاستحقاق (اختياري)</Label>
+              <Input type="date" dir="ltr" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </div>
           </div>
 
           <div className="space-y-1.5">

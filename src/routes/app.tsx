@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-rout
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Wallet, Loader2, Bell } from "lucide-react";
+import { Wallet, Loader2, Bell, Search } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { ModuleTabs } from "@/components/common/ModuleTabs";
 import { BadgeCount } from "@/components/common/BadgeCount";
@@ -56,14 +56,19 @@ function AppLayout() {
             </div>
             دفترك
           </Link>
-          <Link to="/app/notifications" className="relative p-1 rounded-md hover:bg-white/10 transition-colors" aria-label="الإشعارات">
-            <Bell className="size-3.5" />
-            {pending > 0 && (
-              <span className="absolute top-0 right-0">
-                <BadgeCount count={pending} tone="danger" />
-              </span>
-            )}
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link to="/app/search" className="p-1 rounded-md hover:bg-white/10 transition-colors" aria-label="بحث">
+              <Search className="size-3.5" />
+            </Link>
+            <Link to="/app/notifications" className="relative p-1 rounded-md hover:bg-white/10 transition-colors" aria-label="الإشعارات">
+              <Bell className="size-3.5" />
+              {pending > 0 && (
+                <span className="absolute top-0 right-0">
+                  <BadgeCount count={pending} tone="danger" />
+                </span>
+              )}
+            </Link>
+          </div>
         </div>
       </header>
 

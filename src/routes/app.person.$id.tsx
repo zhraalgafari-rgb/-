@@ -19,7 +19,7 @@ import { exportPersonToExcel } from "@/lib/io/exportExcel";
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
 interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
-interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string; details: string | null }
+interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string; details: string | null; due_date: string | null; is_paid: boolean }
 
 function PersonPage() {
   const { id } = useParams({ from: "/app/person/$id" });
@@ -117,6 +117,13 @@ function PersonPage() {
         },
       } : undefined,
     });
+    load();
+  };
+
+  const togglePaid = async (tx: Tx) => {
+    const { error } = await supabase.from("transactions").update({ is_paid: !tx.is_paid }).eq("id", tx.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(tx.is_paid ? "تم إلغاء السداد" : "تم تأكيد السداد");
     load();
   };
 
@@ -224,6 +231,7 @@ function PersonPage() {
                   runningBalance={running[t.id] ?? 0}
                   onEdit={() => { setEditingTx(t); setOpenAdd(true); }}
                   onDelete={() => setDelTxId(t.id)}
+                  onTogglePaid={() => togglePaid(t)}
                 />
               ))}
             </div>
