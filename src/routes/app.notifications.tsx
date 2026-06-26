@@ -74,19 +74,19 @@ function NotificationsCenter() {
                 <div className="text-[11px] text-muted-foreground mt-0.5">{fmtDate(it.due_date)}</div>
                 <div className="flex gap-1.5 mt-2">
                   <button
-                    onClick={() => markDone(it.id)}
+                    onClick={() => markDone(it)}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-success-soft text-success hover:opacity-80"
                   >
                     <Check className="size-3" /> تم
                   </button>
                   <button
-                    onClick={() => snooze(it.id, 1)}
+                    onClick={() => snooze(it, 1)}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-secondary text-foreground hover:opacity-80"
                   >
                     <Clock className="size-3" /> تأجيل يوم
                   </button>
                   <button
-                    onClick={() => snooze(it.id, 7)}
+                    onClick={() => snooze(it, 7)}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-secondary text-foreground hover:opacity-80"
                   >
                     أسبوع
