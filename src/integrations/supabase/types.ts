@@ -346,7 +346,10 @@ export type Database = {
           is_done: boolean
           note: string | null
           person_id: string | null
+          repeat: string
+          snoozed_until: string | null
           title: string
+          transaction_id: string | null
           user_id: string
         }
         Insert: {
@@ -356,7 +359,10 @@ export type Database = {
           is_done?: boolean
           note?: string | null
           person_id?: string | null
+          repeat?: string
+          snoozed_until?: string | null
           title: string
+          transaction_id?: string | null
           user_id: string
         }
         Update: {
@@ -366,10 +372,21 @@ export type Database = {
           is_done?: boolean
           note?: string | null
           person_id?: string | null
+          repeat?: string
+          snoozed_until?: string | null
           title?: string
+          transaction_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reminders_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
