@@ -32,6 +32,8 @@ function DebtsHome() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
+  const [openSmart, setOpenSmart] = useState(false);
+  const [prefill, setPrefill] = useState<ParsedDraft | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("active");
 
