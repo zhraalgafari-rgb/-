@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Plus, UserPlus, Users } from "lucide-react";
+import { Plus, UserPlus, Users, Sparkles, Loader2 } from "lucide-react";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
+import { SmartAddDialog, type ParsedDraft } from "@/components/ai/SmartAddDialog";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { processDueRecurring } from "@/lib/recurring";
@@ -13,7 +14,6 @@ import { FabButton } from "@/components/common/FabButton";
 import { DebtsHeader } from "@/features/debts/DebtsHeader";
 import { PersonRow } from "@/features/debts/PersonRow";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/")({ component: DebtsHome });
 
