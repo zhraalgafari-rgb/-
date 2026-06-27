@@ -14,9 +14,9 @@ export const parseDebtText = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("AI غير متاح حالياً");
     const gateway = createLovableAiGatewayProvider(key);
-    const { experimental_output } = await generateText({
+    const { output } = await generateText({
       model: gateway(MODEL),
-      experimental_output: Output.object({
+      output: Output.object({
         schema: z.object({
           person_name: z.string().describe("اسم الشخص فقط"),
           amount: z.number().describe("المبلغ كرقم"),
@@ -27,7 +27,7 @@ export const parseDebtText = createServerFn({ method: "POST" })
       system: "أنت مساعد محاسبي. حلل النص العربي العامي/الفصيح واستخرج بيانات المعاملة. credit يعني أن المستخدم أعطى مال للشخص (له عند الشخص). debit يعني أن المستخدم استلم مال من الشخص (عليه للشخص). إن كان غامضاً فاختر credit.",
       prompt: data.text,
     });
-    return experimental_output;
+    return output;
   });
 
 /** Generate a polite WhatsApp-ready reminder message. */
