@@ -126,8 +126,9 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
       toast.success(editing ? "تم التعديل" : "تمت الإضافة");
       onSuccess();
       onOpenChange(false);
-    } catch (e: any) {
-      toast.error(e.message ?? "حدث خطأ");
+    } catch (e) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "حدث خطأ");
     } finally {
       setBusy(false);
     }
