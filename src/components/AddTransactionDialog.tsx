@@ -209,7 +209,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
             <Textarea rows={2} value={details} onChange={(e) => setDetails(e.target.value)} placeholder="مثلاً: ماء ديتر وكاله" maxLength={500} />
           </div>
 
-          <RadioGroup value={direction} onValueChange={(v) => setDirection(v as any)} className="grid grid-cols-2 gap-2">
+          <RadioGroup value={direction} onValueChange={(v) => setDirection(v as "credit" | "debit")} className="grid grid-cols-2 gap-2">
             <label className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 cursor-pointer transition-all ${direction === "credit" ? "border-success bg-success-soft text-success" : "border-border"}`}>
               <RadioGroupItem value="credit" className="sr-only" />
               <TrendingUp className="size-4" /> له (دائن)
