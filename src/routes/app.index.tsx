@@ -165,14 +165,29 @@ function DebtsHome() {
         </div>
       )}
 
-      <FabButton onClick={() => setOpenAdd(true)} label="إضافة معاملة" />
+      <button
+        onClick={() => setOpenSmart(true)}
+        aria-label="إضافة ذكية"
+        className="fixed bottom-36 left-4 z-20 size-11 rounded-full bg-card border-2 border-primary text-primary shadow-elevated flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+      >
+        <Sparkles className="size-4" />
+      </button>
+
+      <FabButton onClick={() => { setPrefill(null); setOpenAdd(true); }} label="إضافة معاملة" />
+
+      <SmartAddDialog
+        open={openSmart}
+        onOpenChange={setOpenSmart}
+        onParsed={(d) => { setPrefill(d); setOpenAdd(true); }}
+      />
 
       <AddTransactionDialog
         open={openAdd}
-        onOpenChange={setOpenAdd}
+        onOpenChange={(v) => { setOpenAdd(v); if (!v) setPrefill(null); }}
         people={people}
         currencies={currencies}
         onSuccess={load}
+        prefill={prefill}
       />
     </div>
   );
