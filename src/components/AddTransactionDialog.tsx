@@ -29,6 +29,13 @@ interface EditingTx {
   due_date?: string | null;
 }
 
+interface Prefill {
+  newName?: string;
+  amount?: number;
+  direction?: "credit" | "debit";
+  details?: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -37,9 +44,10 @@ interface Props {
   onSuccess: () => void;
   defaultPersonId?: string;
   editing?: EditingTx | null;
+  prefill?: Prefill | null;
 }
 
-export function AddTransactionDialog({ open, onOpenChange, people, currencies, onSuccess, defaultPersonId, editing }: Props) {
+export function AddTransactionDialog({ open, onOpenChange, people, currencies, onSuccess, defaultPersonId, editing, prefill }: Props) {
   const { user } = useAuth();
   const [personId, setPersonId] = useState<string>("");
   const [newName, setNewName] = useState("");
@@ -59,21 +67,30 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
       setNewName("");
       setAmount(String(editing.amount));
       setDetails(editing.details ?? "");
-      setDirection(editing.direction as any);
+      setDirection(editing.direction as "credit" | "debit");
       setCurrencyId(editing.currency_id);
       setDate(new Date(editing.transaction_date).toISOString().slice(0, 16));
       setDueDate(editing.due_date ? editing.due_date.slice(0, 10) : "");
     } else {
-      setPersonId(defaultPersonId ?? "");
-      setNewName("");
-      setAmount(""); setDetails("");
-      setDirection("credit");
       const base = currencies.find((c) => c.is_base) ?? currencies[0];
+      if (prefill) {
+        const matched = prefill.newName ? people.find((p) => p.name.trim() === prefill.newName!.trim()) : undefined;
+        setPersonId(matched?.id ?? defaultPersonId ?? "");
+        setNewName(matched ? "" : prefill.newName ?? "");
+        setAmount(prefill.amount != null ? String(prefill.amount) : "");
+        setDetails(prefill.details ?? "");
+        setDirection(prefill.direction ?? "credit");
+      } else {
+        setPersonId(defaultPersonId ?? "");
+        setNewName("");
+        setAmount(""); setDetails("");
+        setDirection("credit");
+      }
       setCurrencyId(base?.id ?? "");
       setDate(new Date().toISOString().slice(0, 16));
       setDueDate("");
     }
-  }, [open, defaultPersonId, currencies, editing]);
+  }, [open, defaultPersonId, currencies, editing, prefill, people]);
 
   const submit = async () => {
     if (!user) return;
@@ -109,8 +126,9 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
       toast.success(editing ? "تم التعديل" : "تمت الإضافة");
       onSuccess();
       onOpenChange(false);
-    } catch (e: any) {
-      toast.error(e.message ?? "حدث خطأ");
+    } catch (e) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "حدث خطأ");
     } finally {
       setBusy(false);
     }
@@ -192,7 +210,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
             <Textarea rows={2} value={details} onChange={(e) => setDetails(e.target.value)} placeholder="مثلاً: ماء ديتر وكاله" maxLength={500} />
           </div>
 
-          <RadioGroup value={direction} onValueChange={(v) => setDirection(v as any)} className="grid grid-cols-2 gap-2">
+          <RadioGroup value={direction} onValueChange={(v) => setDirection(v as "credit" | "debit")} className="grid grid-cols-2 gap-2">
             <label className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 cursor-pointer transition-all ${direction === "credit" ? "border-success bg-success-soft text-success" : "border-border"}`}>
               <RadioGroupItem value="credit" className="sr-only" />
               <TrendingUp className="size-4" /> له (دائن)

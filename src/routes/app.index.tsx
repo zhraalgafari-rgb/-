@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Plus, UserPlus, Users } from "lucide-react";
+import { Plus, UserPlus, Users, Sparkles, Loader2 } from "lucide-react";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
+import { SmartAddDialog, type ParsedDraft } from "@/components/ai/SmartAddDialog";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { processDueRecurring } from "@/lib/recurring";
@@ -13,7 +14,6 @@ import { FabButton } from "@/components/common/FabButton";
 import { DebtsHeader } from "@/features/debts/DebtsHeader";
 import { PersonRow } from "@/features/debts/PersonRow";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/")({ component: DebtsHome });
 
@@ -32,6 +32,8 @@ function DebtsHome() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
+  const [openSmart, setOpenSmart] = useState(false);
+  const [prefill, setPrefill] = useState<ParsedDraft | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("active");
 
@@ -163,14 +165,29 @@ function DebtsHome() {
         </div>
       )}
 
-      <FabButton onClick={() => setOpenAdd(true)} label="إضافة معاملة" />
+      <button
+        onClick={() => setOpenSmart(true)}
+        aria-label="إضافة ذكية"
+        className="fixed bottom-36 left-4 z-20 size-11 rounded-full bg-card border-2 border-primary text-primary shadow-elevated flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+      >
+        <Sparkles className="size-4" />
+      </button>
+
+      <FabButton onClick={() => { setPrefill(null); setOpenAdd(true); }} label="إضافة معاملة" />
+
+      <SmartAddDialog
+        open={openSmart}
+        onOpenChange={setOpenSmart}
+        onParsed={(d) => { setPrefill(d); setOpenAdd(true); }}
+      />
 
       <AddTransactionDialog
         open={openAdd}
-        onOpenChange={setOpenAdd}
+        onOpenChange={(v) => { setOpenAdd(v); if (!v) setPrefill(null); }}
         people={people}
         currencies={currencies}
         onSuccess={load}
+        prefill={prefill}
       />
     </div>
   );

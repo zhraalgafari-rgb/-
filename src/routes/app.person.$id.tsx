@@ -1,20 +1,23 @@
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { ArrowRight, Plus, Trash2, Pencil, Share2, MessageCircle, Archive, FileText, FileSpreadsheet } from "lucide-react";
+import { Plus } from "lucide-react";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { fmtMoney, fmtDate, fmtMonthAr } from "@/lib/format";
+import { fmtMoney, fmtDate } from "@/lib/format";
 import { toast } from "sonner";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
-import { TransactionRow } from "@/features/debts/TransactionRow";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { exportPersonStatementPDF } from "@/lib/io/exportPdf";
 import { exportPersonToExcel } from "@/lib/io/exportExcel";
+import { PersonActionsBar } from "@/features/debts/person/PersonActionsBar";
+import { PersonBalanceCard } from "@/features/debts/person/PersonBalanceCard";
+import { PersonTimeline } from "@/features/debts/person/PersonTimeline";
+import { AiReminderDialog } from "@/components/ai/AiReminderDialog";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
@@ -39,6 +42,7 @@ function PersonPage() {
   const [delTxId, setDelTxId] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDelPerson, setConfirmDelPerson] = useState(false);
+  const [openAi, setOpenAi] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -70,11 +74,8 @@ function PersonPage() {
     return net;
   }, [txs, currencies]);
 
-  // Build running balance by chronological order
   const running = useMemo(() => {
-    const ordered = [...txs].sort(
-      (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime(),
-    );
+    const ordered = [...txs].sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime());
     const map: Record<string, number> = {};
     let acc = 0;
     for (const t of ordered) {
@@ -84,22 +85,6 @@ function PersonPage() {
     }
     return map;
   }, [txs, currencies]);
-
-  // Group transactions by month for timeline view
-  const grouped = useMemo(() => {
-    const groups = new Map<string, Tx[]>();
-    for (const t of txs) {
-      const d = new Date(t.transaction_date);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      const arr = groups.get(key) ?? [];
-      arr.push(t);
-      groups.set(key, arr);
-    }
-    return Array.from(groups.entries()).map(([key, items]) => {
-      const [y, m] = key.split("-").map(Number);
-      return { key, label: fmtMonthAr(new Date(y, m, 1)), items };
-    });
-  }, [txs]);
 
   const delTx = async () => {
     if (!delTxId) return;
@@ -142,10 +127,7 @@ function PersonPage() {
 
   const saveName = async () => {
     if (!draftName.trim()) { toast.error("الاسم مطلوب"); return; }
-    const { error } = await supabase.from("people").update({
-      name: draftName.trim(),
-      phone: draftPhone.trim() || null,
-    }).eq("id", id);
+    const { error } = await supabase.from("people").update({ name: draftName.trim(), phone: draftPhone.trim() || null }).eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("تم الحفظ"); setEditName(false); load();
   };
@@ -164,79 +146,45 @@ function PersonPage() {
 
   const share = async () => {
     const text = buildShareText();
-    if (navigator.share) {
-      try { await navigator.share({ title: `كشف حساب ${name}`, text }); return; } catch { /* fallthrough */ }
-    }
+    if (navigator.share) { try { await navigator.share({ title: `كشف حساب ${name}`, text }); return; } catch { /* ignore */ } }
     await navigator.clipboard.writeText(text);
     toast.success("تم نسخ الكشف للحافظة");
   };
 
   const shareWhatsApp = () => {
     const text = encodeURIComponent(buildShareText());
-    const phoneClean = phone ? phone.replace(/\D/g, "") : "";
-    window.open(phoneClean ? `https://wa.me/${phoneClean}?text=${text}` : `https://wa.me/?text=${text}`, "_blank");
+    const p = phone ? phone.replace(/\D/g, "") : "";
+    window.open(p ? `https://wa.me/${p}?text=${text}` : `https://wa.me/?text=${text}`, "_blank");
   };
 
-  const isCredit = balance >= 0;
+  const baseCur = currencies.find((c) => c.is_base);
 
   return (
     <div className="space-y-3 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
-        <Link to="/app" className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">
-          <ArrowRight className="size-3.5" /> رجوع
-        </Link>
-        <div className="flex items-center gap-0.5">
-          <button onClick={() => exportPersonStatementPDF({ personName: name, phone, txs, currencies, balance })} aria-label="PDF" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-danger"><FileText className="size-3.5" /></button>
-          <button onClick={() => exportPersonToExcel(id, name)} aria-label="Excel" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-success"><FileSpreadsheet className="size-3.5" /></button>
-          <button onClick={share} aria-label="مشاركة" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Share2 className="size-3.5" /></button>
-          <button onClick={shareWhatsApp} aria-label="واتساب" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-success"><MessageCircle className="size-3.5" /></button>
-          <button onClick={() => setEditName(true)} aria-label="تعديل" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Pencil className="size-3.5" /></button>
-          <button onClick={() => setConfirmArchive(true)} aria-label="أرشفة" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary"><Archive className="size-3.5" /></button>
-          <button onClick={() => setConfirmDelPerson(true)} aria-label="حذف" className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-danger"><Trash2 className="size-3.5" /></button>
-        </div>
-      </div>
+      <PersonActionsBar
+        onPdf={() => exportPersonStatementPDF({ personName: name, phone, txs, currencies, balance })}
+        onExcel={() => exportPersonToExcel(id, name)}
+        onShare={share}
+        onWhatsApp={shareWhatsApp}
+        onAiMessage={() => setOpenAi(true)}
+        onEdit={() => setEditName(true)}
+        onArchive={() => setConfirmArchive(true)}
+        onDelete={() => setConfirmDelPerson(true)}
+      />
 
-      <div className={`rounded-xl p-3 shadow-elevated text-white ${isCredit ? "bg-gradient-success" : "bg-gradient-danger"}`}>
-        <div className="text-[11px] opacity-90 mb-0.5">
-          {name}
-          {phone && <span className="ms-2 opacity-75" dir="ltr">{phone}</span>}
-        </div>
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="text-[10px] opacity-90">{isCredit ? "له عندك" : "عليه"}</div>
-            <div className="text-2xl font-black mt-0.5 tabular-nums leading-tight">{fmtMoney(Math.abs(balance))}</div>
-          </div>
-          <div className="text-[10px] opacity-90">{txs.length} معاملة</div>
-        </div>
-      </div>
+      <PersonBalanceCard name={name} phone={phone} balance={balance} txCount={txs.length} />
 
       {loading ? (
         <ListSkeleton rows={4} />
       ) : txs.length === 0 ? (
         <EmptyState icon={Plus} title="لا توجد معاملات بعد" description="أضف أول معاملة لهذا الشخص." variant="compact" />
       ) : (
-        <div className="space-y-4">
-          {grouped.map((g) => (
-            <div key={g.key} className="space-y-2">
-              <div className="flex items-center gap-2 px-1">
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-[11px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{g.label}</span>
-                <div className="h-px flex-1 bg-border" />
-              </div>
-              {g.items.map((t) => (
-                <TransactionRow
-                  key={t.id}
-                  tx={t}
-                  currency={currencies.find((c) => c.id === t.currency_id)}
-                  runningBalance={running[t.id] ?? 0}
-                  onEdit={() => { setEditingTx(t); setOpenAdd(true); }}
-                  onDelete={() => setDelTxId(t.id)}
-                  onTogglePaid={() => togglePaid(t)}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
+        <PersonTimeline
+          txs={txs} currencies={currencies} running={running}
+          onEdit={(t) => { setEditingTx(t); setOpenAdd(true); }}
+          onDelete={(id) => setDelTxId(id)}
+          onTogglePaid={togglePaid}
+        />
       )}
 
       <button
@@ -250,11 +198,16 @@ function PersonPage() {
       <AddTransactionDialog
         open={openAdd}
         onOpenChange={(v) => { setOpenAdd(v); if (!v) setEditingTx(null); }}
-        people={people}
-        currencies={currencies}
-        onSuccess={load}
-        defaultPersonId={id}
-        editing={editingTx}
+        people={people} currencies={currencies}
+        onSuccess={load} defaultPersonId={id} editing={editingTx}
+      />
+
+      <AiReminderDialog
+        open={openAi} onOpenChange={setOpenAi}
+        personName={name}
+        amount={Math.abs(balance)}
+        currency={baseCur?.name}
+        phone={phone}
       />
 
       <Dialog open={editName} onOpenChange={setEditName}>
@@ -268,32 +221,9 @@ function PersonPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
-        open={!!delTxId}
-        onOpenChange={(v) => !v && setDelTxId(null)}
-        title="حذف المعاملة"
-        description="لا يمكن التراجع عن هذا الإجراء."
-        destructive confirmLabel="حذف"
-        onConfirm={delTx}
-      />
-
-      <ConfirmDialog
-        open={confirmArchive}
-        onOpenChange={setConfirmArchive}
-        title={`أرشفة ${name}؟`}
-        description="يمكن استعادة الشخص من صفحة الأرشيف لاحقاً."
-        confirmLabel="أرشفة"
-        onConfirm={archivePerson}
-      />
-
-      <ConfirmDialog
-        open={confirmDelPerson}
-        onOpenChange={setConfirmDelPerson}
-        title={`حذف ${name} نهائياً؟`}
-        description="لا يمكن الحذف إذا كانت هناك معاملات. استخدم الأرشفة بدلاً من ذلك."
-        destructive confirmLabel="حذف"
-        onConfirm={delPerson}
-      />
+      <ConfirmDialog open={!!delTxId} onOpenChange={(v) => !v && setDelTxId(null)} title="حذف المعاملة" description="لا يمكن التراجع عن هذا الإجراء." destructive confirmLabel="حذف" onConfirm={delTx} />
+      <ConfirmDialog open={confirmArchive} onOpenChange={setConfirmArchive} title={`أرشفة ${name}؟`} description="يمكن استعادة الشخص من صفحة الأرشيف لاحقاً." confirmLabel="أرشفة" onConfirm={archivePerson} />
+      <ConfirmDialog open={confirmDelPerson} onOpenChange={setConfirmDelPerson} title={`حذف ${name} نهائياً؟`} description="لا يمكن الحذف إذا كانت هناك معاملات. استخدم الأرشفة بدلاً من ذلك." destructive confirmLabel="حذف" onConfirm={delPerson} />
     </div>
   );
 }
