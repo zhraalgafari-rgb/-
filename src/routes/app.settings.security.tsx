@@ -38,8 +38,9 @@ function SecurityPage() {
     try {
       const v = Number(localStorage.getItem(AUTOLOCK_KEY) ?? "5");
       setAutolock(isNaN(v) ? 5 : v);
-      setBiometric(localStorage.getItem("daftarak.biometric") === "1");
+      setBiometric(biometricEnabled());
     } catch {}
+    biometricAvailable().then(setBioSupported);
   }, [user]);
 
   const setPinCode = async () => {
