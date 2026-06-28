@@ -81,7 +81,7 @@ export const analyzeCustomerRating = createServerFn({ method: "POST" })
       output: Output.object({
         schema: z.object({
           score: z.number().min(0).max(100).describe("درجة الصحة المالية للعميل من 0 إلى 100"),
-          rating: z.enum(["excellent", "good", "average", "risky", "bad"]),
+          rating: z.enum(["excellent", "very_good", "good", "average", "high_risk"]),
           reason: z.string().max(220).describe("سبب التقييم بالعربية في جملة أو جملتين"),
         }),
       }),
