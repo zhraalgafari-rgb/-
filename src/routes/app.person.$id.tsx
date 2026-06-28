@@ -49,11 +49,12 @@ function PersonPage() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [{ data: person }, { data: t }, { data: c }, { data: p }] = await Promise.all([
+    const [{ data: person }, { data: t }, { data: c }, { data: p }, { data: ob }] = await Promise.all([
       supabase.from("people").select("name,phone").eq("id", id).single(),
       supabase.from("transactions").select("*").eq("person_id", id).order("transaction_date", { ascending: false }),
       supabase.from("currencies").select("*").order("is_base", { ascending: false }),
       supabase.from("people").select("id,name"),
+      supabase.from("opening_balances").select("currency_id,amount,direction").eq("person_id", id),
     ]);
     setName(person?.name ?? "");
     setPhone(person?.phone ?? null);
@@ -62,10 +63,25 @@ function PersonPage() {
     setTxs((t ?? []) as Tx[]);
     setCurrencies((c ?? []) as Currency[]);
     setPeople((p ?? []) as { id: string; name: string }[]);
+    setOpenings((ob ?? []) as OpeningBalance[]);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, [user, id]);
+
+  const balancesByCurrency = useMemo(
+    () => computeBalancesByCurrency(txs, currencies, openings),
+    [txs, currencies, openings],
+  );
+
+  // Used by AI reminder dialog — pick base currency balance (or first available)
+  const primaryBalance = balancesByCurrency.find((b) => b.currency.is_base) ?? balancesByCurrency[0];
+  const balanceForActions = primaryBalance?.balance ?? 0;
+
+  const running = useMemo(
+    () => computeRunningByCurrency(txs, openings),
+    [txs, openings],
+  );
 
   const balance = useMemo(() => {
     let net = 0;
