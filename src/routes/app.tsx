@@ -63,11 +63,14 @@ function AppLayout() {
             </div>
             دفترك
           </Link>
-          <div className="flex items-center gap-1">
-            <Link to="/app/search" className="p-1 rounded-md hover:bg-white/10 transition-colors" aria-label="بحث">
+          <div className="flex items-center gap-0.5">
+            <button onClick={() => setSearchOpen(true)} className="p-1.5 rounded-md hover:bg-white/10 transition-colors" aria-label="بحث">
               <Search className="size-3.5" />
-            </Link>
-            <Link to="/app/notifications" className="relative p-1 rounded-md hover:bg-white/10 transition-colors" aria-label="الإشعارات">
+            </button>
+            <button onClick={() => setTheme(isDark ? "light" : "dark")} className="p-1.5 rounded-md hover:bg-white/10 transition-colors" aria-label="تبديل المظهر">
+              {isDark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+            </button>
+            <Link to="/app/notifications" className="relative p-1.5 rounded-md hover:bg-white/10 transition-colors" aria-label="الإشعارات">
               <Bell className="size-3.5" />
               {pending > 0 && (
                 <span className="absolute top-0 right-0">
@@ -84,6 +87,7 @@ function AppLayout() {
         <Outlet />
       </main>
 
+      <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
       <BottomNav />
     </div>
   );
