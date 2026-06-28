@@ -10,6 +10,7 @@ import { GlobalSearchDialog } from "@/components/GlobalSearchDialog";
 import { useTheme } from "@/lib/theme";
 import { fetchPending, pollAndNotify } from "@/lib/notifications";
 import { syncRemindersFn } from "@/lib/jobs.functions";
+import { registerServiceWorker } from "@/lib/push";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
@@ -20,6 +21,8 @@ function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { theme, set: setTheme } = useTheme();
   const isDark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
+
+  useEffect(() => { registerServiceWorker(); }, []);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });

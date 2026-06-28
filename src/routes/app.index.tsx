@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, UserPlus, Users, Sparkles, Loader2, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { SmartAddDialog, type ParsedDraft } from "@/components/ai/SmartAddDialog";
+import { PersonFormDialog, type PersonEditing } from "@/components/PersonFormDialog";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { processDueRecurring } from "@/lib/recurring";
@@ -16,11 +18,12 @@ import { MultiCurrencyTotals } from "@/features/debts/MultiCurrencyTotals";
 import { PersonRow, type PersonBalance } from "@/features/debts/PersonRow";
 import { PersonTable } from "@/features/debts/PersonTable";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/")({ component: DebtsHome });
 
 interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
-interface Person { id: string; name: string; type: string; is_archived: boolean; avatar_color: string | null; phone: string | null }
+interface Person { id: string; name: string; type: string; is_archived: boolean; avatar_color: string | null; phone: string | null; notes?: string | null; credit_limit?: number | null }
 interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string }
 
 type Filter = "all" | "credit" | "debit";
@@ -36,6 +39,10 @@ function DebtsHome() {
   const [q, setQ] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
   const [openSmart, setOpenSmart] = useState(false);
+  const [openPerson, setOpenPerson] = useState(false);
+  const [editingPerson, setEditingPerson] = useState<PersonEditing | null>(null);
+  const [delPerson, setDelPerson] = useState<Person | null>(null);
+  const [archivePerson, setArchivePerson] = useState<Person | null>(null);
   const [prefill, setPrefill] = useState<ParsedDraft | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("active");
@@ -194,14 +201,34 @@ function DebtsHome() {
             person: p,
             balance: personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0, totalCredit: 0, totalDebit: 0 },
           }))}
+          onEdit={(p) => { const full = people.find((x) => x.id === p.id)!; setEditingPerson({ id: full.id, name: full.name, phone: full.phone, type: full.type, notes: full.notes ?? null, avatar_color: full.avatar_color, credit_limit: full.credit_limit ?? null }); setOpenPerson(true); }}
+          onArchive={(p) => setArchivePerson(people.find((x) => x.id === p.id) ?? null)}
+          onDelete={(p) => setDelPerson(people.find((x) => x.id === p.id) ?? null)}
         />
       ) : (
         <div className="space-y-2">
           {filtered.map((p, i) => (
-            <PersonRow key={p.id} person={p} balance={personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0 }} index={i} />
+            <PersonRow
+              key={p.id}
+              person={p}
+              balance={personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0 }}
+              index={i}
+              onEdit={() => { setEditingPerson({ id: p.id, name: p.name, phone: p.phone, type: p.type, notes: p.notes ?? null, avatar_color: p.avatar_color, credit_limit: p.credit_limit ?? null }); setOpenPerson(true); }}
+              onArchive={() => setArchivePerson(p)}
+              onDelete={() => setDelPerson(p)}
+            />
           ))}
         </div>
       )}
+
+      {/* Add new customer button (floating, above the smart add) */}
+      <button
+        onClick={() => { setEditingPerson(null); setOpenPerson(true); }}
+        aria-label="إضافة عميل جديد"
+        className="fixed bottom-52 left-4 z-20 size-11 rounded-full bg-card border-2 border-success text-success shadow-elevated flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+      >
+        <UserPlus className="size-4" />
+      </button>
 
       <button
         onClick={() => setOpenSmart(true)}
@@ -226,6 +253,44 @@ function DebtsHome() {
         currencies={currencies}
         onSuccess={load}
         prefill={prefill}
+      />
+
+      <PersonFormDialog
+        open={openPerson}
+        onOpenChange={(v) => { setOpenPerson(v); if (!v) setEditingPerson(null); }}
+        editing={editingPerson}
+        onSuccess={() => load()}
+      />
+
+      <ConfirmDialog
+        open={!!archivePerson}
+        onOpenChange={(v) => !v && setArchivePerson(null)}
+        title={`أرشفة ${archivePerson?.name ?? ""}؟`}
+        description="يمكن استعادته لاحقاً من صفحة الأرشيف."
+        confirmLabel="أرشفة"
+        onConfirm={async () => {
+          if (!archivePerson) return;
+          const { error } = await supabase.from("people").update({ is_archived: true }).eq("id", archivePerson.id);
+          if (error) { toast.error(error.message); return; }
+          toast.success("تمت الأرشفة"); load();
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!delPerson}
+        onOpenChange={(v) => !v && setDelPerson(null)}
+        title={`حذف ${delPerson?.name ?? ""} نهائياً؟`}
+        description="لا يمكن الحذف إذا كانت لديه معاملات. استخدم الأرشفة بدلاً من ذلك."
+        destructive
+        confirmLabel="حذف"
+        onConfirm={async () => {
+          if (!delPerson) return;
+          const { count } = await supabase.from("transactions").select("id", { count: "exact", head: true }).eq("person_id", delPerson.id);
+          if ((count ?? 0) > 0) { toast.error("لا يمكن الحذف — لديه معاملات. استخدم الأرشفة."); return; }
+          const { error } = await supabase.from("people").delete().eq("id", delPerson.id);
+          if (error) { toast.error(error.message); return; }
+          toast.success("تم الحذف"); load();
+        }}
       />
     </div>
   );

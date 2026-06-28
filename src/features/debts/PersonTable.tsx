@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import type { PersonBalance } from "./PersonRow";
+import { RowActions } from "@/components/common/RowActions";
 
 interface Person {
   id: string;
@@ -10,10 +11,14 @@ interface Person {
 
 interface Props {
   rows: { person: Person; balance: PersonBalance }[];
+  onEdit?: (p: Person) => void;
+  onArchive?: (p: Person) => void;
+  onDelete?: (p: Person) => void;
 }
 
 /** Professional, colorful, dense table view of customers. */
-export function PersonTable({ rows }: Props) {
+export function PersonTable({ rows, onEdit, onArchive, onDelete }: Props) {
+  const hasActions = !!(onEdit || onArchive || onDelete);
   return (
     <div className="rounded-lg border bg-card shadow-card overflow-hidden animate-in fade-in duration-200">
       <div className="overflow-x-auto">
@@ -28,6 +33,7 @@ export function PersonTable({ rows }: Props) {
               <th className="text-left">عليه</th>
               <th className="text-left">الصافي</th>
               <th className="text-center hidden xs:table-cell">آخر دفعة</th>
+              {hasActions && <th className="text-center w-10">إجراء</th>}
             </tr>
           </thead>
           <tbody>
@@ -86,12 +92,21 @@ export function PersonTable({ rows }: Props) {
                   <td className="px-2 py-1.5 text-center hidden xs:table-cell text-muted-foreground tabular-nums">
                     {balance.lastDate ? fmtDate(new Date(balance.lastDate).toISOString()) : "—"}
                   </td>
+                  {hasActions && (
+                    <td className="px-1 py-1 text-center">
+                      <RowActions
+                        onEdit={onEdit ? () => onEdit(person) : undefined}
+                        onArchive={onArchive ? () => onArchive(person) : undefined}
+                        onDelete={onDelete ? () => onDelete(person) : undefined}
+                      />
+                    </td>
+                  )}
                 </tr>
               );
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="text-center py-4 text-muted-foreground text-[10px]">
+                <td colSpan={hasActions ? 9 : 8} className="text-center py-4 text-muted-foreground text-[10px]">
                   لا توجد بيانات
                 </td>
               </tr>

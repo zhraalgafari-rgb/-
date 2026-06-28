@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Users, Wallet, BarChart3, Settings, Tags, PieChart, Archive, Coins } from "lucide-react";
+import { Users, Wallet, BarChart3, Settings, Tags, PieChart, BellRing, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { BadgeCount } from "@/components/common/BadgeCount";
@@ -19,7 +19,7 @@ const SETTINGS_PREFIXES = [
 
 const debtsItems: NavItem[] = [
   { to: "/app", label: "الديون", icon: Users, match: (p) => p === "/app" || p === "/app/" },
-  { to: "/app/archive", label: "الأرشيف", icon: Archive, match: (p) => p.startsWith("/app/archive") },
+  { to: "/app/followup", label: "المتابعة", icon: BellRing, match: (p) => p.startsWith("/app/followup"), badgeKey: "reminders" },
   { to: "/app/reports", label: "التقارير", icon: BarChart3, match: (p) => p.startsWith("/app/reports") },
   { to: "/app/settings", label: "الإعدادات", icon: Settings, match: (p) => SETTINGS_PREFIXES.some((x) => p.startsWith(x)) },
 ];
@@ -59,7 +59,7 @@ export function BottomNav() {
         {items.map((it) => {
           const active = it.match(path);
           const Icon = it.icon;
-          const showBadge = it.to === "/app/settings" && pendingReminders > 0;
+          const showBadge = (it.badgeKey === "reminders" || it.to === "/app/settings") && pendingReminders > 0;
           return (
             <Link
               key={it.to}
