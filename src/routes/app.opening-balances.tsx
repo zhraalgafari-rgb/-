@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Wallet, Plus, Trash2, Loader2 } from "lucide-react";
+import { ArrowRight, Wallet, Plus, Trash2, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { fmtMoney } from "@/lib/format";
+import { OpeningBalanceImportDialog } from "@/components/import/OpeningBalanceImportDialog";
 
 export const Route = createFileRoute("/app/opening-balances")({ component: OpeningBalancesPage });
 
