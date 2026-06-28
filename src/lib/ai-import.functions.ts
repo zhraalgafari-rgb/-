@@ -82,3 +82,44 @@ export const aiExtractFromPdfText = createServerFn({ method: "POST" })
     });
     return output;
   });
+
+/** Extract opening balances batch: split merged name+phone, detect amount/currency/direction/last payment. */
+export const aiExtractOpeningBalances = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      headers: z.array(z.string()).min(1).max(40),
+      rows: z.array(z.record(z.string(), z.unknown())).min(1).max(80),
+    }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("AI غير متاح حالياً");
+    const gateway = createLovableAiGatewayProvider(key);
+    const { output } = await generateText({
+      model: gateway(MODEL),
+      output: Output.object({
+        schema: z.object({
+          rows: z.array(z.object({
+            name: z.string().describe("اسم العميل فقط بدون رقم الهاتف"),
+            phone: z.string().describe("رقم الجوال إن وجد، فارغ إن لم يوجد"),
+            amount: z.number().describe("المبلغ موجب دائماً"),
+            direction: z.enum(["credit", "debit"]).describe("credit=له عندي/الزبون دائن، debit=عليه/مدين"),
+            currency: z.enum(["SAR", "YER", "USD", "OTHER"]).describe("SAR=ريال سعودي، YER=ريال يمني"),
+            last_payment_amount: z.number().describe("آخر دفعة إن وجدت، 0 إن لم يوجد"),
+            last_payment_date: z.string().describe("تاريخ آخر دفعة YYYY-MM-DD أو فارغ"),
+            opening_date: z.string().describe("تاريخ الرصيد الافتتاحي YYYY-MM-DD أو فارغ"),
+            notes: z.string().describe("ملاحظات إضافية أو فارغ"),
+          })).max(80),
+        }),
+      }),
+      system:
+        "أنت مساعد محاسبي عربي خبير. ستحلل صفوف عملاء من ملف اكسل لمحل تجاري يمني/سعودي. " +
+        "في كل صف عمود الاسم قد يحوي اسم العميل ورقم جواله مدمجين — افصلهما: الأرقام (9-15 رقم) رقم هاتف، الباقي اسم. " +
+        "حدد الاتجاه: 'له/دائن/+' = credit، 'عليه/مدين/-' = debit. إن كان المبلغ سالب اعتبره debit وأعد القيمة المطلقة. " +
+        "حدد العملة من السياق (ر.ي/يمني=YER، ر.س/سعودي=SAR). إن لم تظهر العملة، خمّن YER للمبالغ الكبيرة (>10000) و SAR للصغيرة. " +
+        "استخرج آخر دفعة وتاريخها إن وجدت أعمدة مناسبة. تجاهل صفوف الإجماليات والترويسات.",
+      prompt: `الأعمدة: ${JSON.stringify(data.headers)}\n\nالصفوف:\n${JSON.stringify(data.rows)}`,
+    });
+    return output;
+  });
