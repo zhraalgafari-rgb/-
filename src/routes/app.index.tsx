@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, UserPlus, Users, Sparkles, Loader2, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { SmartAddDialog, type ParsedDraft } from "@/components/ai/SmartAddDialog";
+import { PersonFormDialog, type PersonEditing } from "@/components/PersonFormDialog";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { processDueRecurring } from "@/lib/recurring";
@@ -16,11 +18,12 @@ import { MultiCurrencyTotals } from "@/features/debts/MultiCurrencyTotals";
 import { PersonRow, type PersonBalance } from "@/features/debts/PersonRow";
 import { PersonTable } from "@/features/debts/PersonTable";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/")({ component: DebtsHome });
 
 interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
-interface Person { id: string; name: string; type: string; is_archived: boolean; avatar_color: string | null; phone: string | null }
+interface Person { id: string; name: string; type: string; is_archived: boolean; avatar_color: string | null; phone: string | null; notes?: string | null; credit_limit?: number | null }
 interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string }
 
 type Filter = "all" | "credit" | "debit";
@@ -36,6 +39,10 @@ function DebtsHome() {
   const [q, setQ] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
   const [openSmart, setOpenSmart] = useState(false);
+  const [openPerson, setOpenPerson] = useState(false);
+  const [editingPerson, setEditingPerson] = useState<PersonEditing | null>(null);
+  const [delPerson, setDelPerson] = useState<Person | null>(null);
+  const [archivePerson, setArchivePerson] = useState<Person | null>(null);
   const [prefill, setPrefill] = useState<ParsedDraft | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("active");
