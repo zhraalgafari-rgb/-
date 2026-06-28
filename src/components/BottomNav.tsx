@@ -64,6 +64,7 @@ export function BottomNav() {
             <Link
               key={it.to}
               to={it.to}
+              preload="viewport"
               className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors active:scale-95 ${active ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
               aria-current={active ? "page" : undefined}
             >
