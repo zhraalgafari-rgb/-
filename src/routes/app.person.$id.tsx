@@ -162,7 +162,7 @@ function PersonPage() {
   return (
     <div className="space-y-3 animate-in fade-in duration-300">
       <PersonActionsBar
-        onPdf={() => exportPersonStatementPDF({ personName: name, phone, txs, currencies, balance: balanceForActions })}
+        onPdf={() => exportPersonStatementPDF({ personName: name, phone, txs, currencies, openings, balance: balanceForActions })}
         onExcel={() => exportPersonToExcel(id, name)}
         onShare={share}
         onWhatsApp={shareWhatsApp}
