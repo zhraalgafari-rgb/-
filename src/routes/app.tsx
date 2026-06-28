@@ -9,8 +9,7 @@ import { BadgeCount } from "@/components/common/BadgeCount";
 import { GlobalSearchDialog } from "@/components/GlobalSearchDialog";
 import { useTheme } from "@/lib/theme";
 import { fetchPending, pollAndNotify } from "@/lib/notifications";
-import { maybeRunAutoBackup } from "@/lib/backup";
-import { syncRemindersFromTransactions } from "@/lib/reminders";
+import { syncRemindersFn } from "@/lib/server/jobs.functions";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
@@ -30,12 +29,10 @@ function AppLayout() {
     if (!user) return;
     let cancelled = false;
     (async () => {
-      await syncRemindersFromTransactions(user.id).catch(() => 0);
+      // Backend handles reminder sync + auto-backup via cron; this is a foreground best-effort.
+      await syncRemindersFn().catch(() => null);
       const items = await fetchPending(user.id);
       if (!cancelled) setPending(items.length);
-      const { data } = await supabase.from("profiles").select("backup_frequency").eq("user_id", user.id).maybeSingle();
-      const freq = (data?.backup_frequency ?? "off") as "off" | "daily" | "weekly" | "monthly";
-      maybeRunAutoBackup(user.id, freq);
       pollAndNotify(user.id);
     })();
     const t = setInterval(async () => {
