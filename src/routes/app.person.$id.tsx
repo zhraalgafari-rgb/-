@@ -137,7 +137,11 @@ function PersonPage() {
       const sign = t.direction === "credit" ? "+" : "-";
       lines.push(`${fmtDate(t.transaction_date)} | ${sign}${fmtMoney(Number(t.amount))} ${cur}${t.details ? " — " + t.details : ""}`);
     }
-    lines.push("", `الرصيد: ${balance >= 0 ? "+" : ""}${fmtMoney(balance)} ${balance >= 0 ? "(له)" : "(عليه)"}`);
+    lines.push("");
+    for (const b of balancesByCurrency) {
+      const tag = b.balance >= 0 ? "(له)" : "(عليه)";
+      lines.push(`${b.currency.name}: ${fmtMoney(Math.abs(b.balance))} ${b.currency.symbol} ${tag}`);
+    }
     lines.push("— عبر تطبيق دفترك");
     return lines.join("\n");
   };
@@ -155,12 +159,10 @@ function PersonPage() {
     window.open(p ? `https://wa.me/${p}?text=${text}` : `https://wa.me/?text=${text}`, "_blank");
   };
 
-  const baseCur = currencies.find((c) => c.is_base);
-
   return (
     <div className="space-y-3 animate-in fade-in duration-300">
       <PersonActionsBar
-        onPdf={() => exportPersonStatementPDF({ personName: name, phone, txs, currencies, balance })}
+        onPdf={() => exportPersonStatementPDF({ personName: name, phone, txs, currencies, balance: balanceForActions })}
         onExcel={() => exportPersonToExcel(id, name)}
         onShare={share}
         onWhatsApp={shareWhatsApp}
@@ -170,7 +172,7 @@ function PersonPage() {
         onDelete={() => setConfirmDelPerson(true)}
       />
 
-      <PersonBalanceCard name={name} phone={phone} balance={balance} txCount={txs.length} />
+      <PersonBalancesByCurrency name={name} phone={phone} balances={balancesByCurrency} totalTxCount={txs.length} />
 
       {loading ? (
         <ListSkeleton rows={4} />
@@ -203,8 +205,8 @@ function PersonPage() {
       <AiReminderDialog
         open={openAi} onOpenChange={setOpenAi}
         personName={name}
-        amount={Math.abs(balance)}
-        currency={baseCur?.name}
+        amount={Math.abs(balanceForActions)}
+        currency={primaryBalance?.currency.name}
         phone={phone}
       />
 
