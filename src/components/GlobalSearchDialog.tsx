@@ -9,7 +9,7 @@ import { fmtMoney, fmtDate } from "@/lib/format";
 
 interface Person { id: string; name: string; phone: string | null }
 interface Tx { id: string; person_id: string; amount: number; direction: string; details: string | null; transaction_date: string }
-interface Exp { id: string; amount: number; details: string | null; expense_date: string; category_id: string | null }
+interface Exp { id: string; amount: number; note: string | null; expense_date: string; category_id: string | null }
 
 interface Props { open: boolean; onOpenChange: (v: boolean) => void }
 
@@ -33,7 +33,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
       const [{ data: p }, { data: t }, { data: e }] = await Promise.all([
         supabase.from("people").select("id,name,phone").eq("is_archived", false).limit(500),
         supabase.from("transactions").select("id,person_id,amount,direction,details,transaction_date").order("transaction_date", { ascending: false }).limit(500),
-        supabase.from("expenses").select("id,amount,details,expense_date,category_id").order("expense_date", { ascending: false }).limit(300),
+        supabase.from("expenses").select("id,amount,note,expense_date,category_id").order("expense_date", { ascending: false }).limit(300),
       ]);
       setPeople((p ?? []) as Person[]);
       setTxs((t ?? []) as Tx[]);
@@ -49,7 +49,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
     if (!nq) return { people: people.slice(0, 6), txs: [] as Tx[], exps: [] as Exp[] };
     const fp = people.filter((p) => normalize(p.name).includes(nq) || (p.phone ?? "").includes(q)).slice(0, 6);
     const ft = txs.filter((t) => normalize(t.details ?? "").includes(nq) || String(t.amount).includes(nq)).slice(0, 8);
-    const fe = exps.filter((e) => normalize(e.details ?? "").includes(nq) || String(e.amount).includes(nq)).slice(0, 6);
+    const fe = exps.filter((e) => normalize(e.note ?? "").includes(nq) || String(e.amount).includes(nq)).slice(0, 6);
     return { people: fp, txs: ft, exps: fe };
   }, [nq, q, people, txs, exps]);
 
@@ -98,7 +98,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
             <Section title="المصاريف" icon={Receipt}>
               {results.exps.map((e) => (
                 <Row key={e.id} onClick={goExp} icon={<Receipt className="size-3.5 text-amber-600" />}
-                  title={`${fmtMoney(Number(e.amount))}${e.details ? " — " + e.details : ""}`}
+                  title={`${fmtMoney(Number(e.amount))}${e.note ? " — " + e.note : ""}`}
                   subtitle={fmtDate(e.expense_date)} />
               ))}
             </Section>
