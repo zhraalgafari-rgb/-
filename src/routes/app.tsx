@@ -28,18 +28,24 @@ function AppLayout() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    (async () => {
-      // Backend handles reminder sync + auto-backup via cron; this is a foreground best-effort.
-      await syncRemindersFn().catch(() => null);
+    const load = async () => {
       const items = await fetchPending(user.id);
       if (!cancelled) setPending(items.length);
+    };
+    load();
+    // Defer heavy backend sync until the browser is idle so navigation feels instant.
+    const idle = (cb: () => void) =>
+      (window as any).requestIdleCallback?.(cb, { timeout: 2000 }) ?? setTimeout(cb, 1200);
+    const handle = idle(() => {
+      syncRemindersFn().catch(() => null);
       pollAndNotify(user.id);
-    })();
-    const t = setInterval(async () => {
-      const items = await fetchPending(user.id);
-      if (!cancelled) setPending(items.length);
-    }, 5 * 60 * 1000);
-    return () => { cancelled = true; clearInterval(t); };
+    });
+    const t = setInterval(load, 5 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+      (window as any).cancelIdleCallback?.(handle);
+    };
   }, [user]);
 
   if (loading || !user) {
