@@ -74,7 +74,7 @@ export async function verifyBiometric(): Promise<boolean> {
         challenge,
         timeout: 60_000,
         userVerification: "required",
-        allowCredentials: [{ type: "public-key", id: b64decode(idB64) }],
+        allowCredentials: [{ type: "public-key", id: b64decode(idB64).buffer as ArrayBuffer }],
       },
     });
     return !!assertion;
