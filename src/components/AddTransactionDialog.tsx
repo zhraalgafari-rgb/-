@@ -124,12 +124,33 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
         due_date: dueDate || null,
         rate_at_tx: rateAtTx,
       };
-      const { error: te } = editing
-        ? await supabase.from("transactions").update(payload).eq("id", editing.id)
-        : await supabase.from("transactions").insert(payload);
+      const { data: txData, error: te } = editing
+        ? await supabase.from("transactions").update(payload).eq("id", editing.id).select("id").single()
+        : await supabase.from("transactions").insert(payload).select("id").single();
       if (te) throw te;
+      const newTxId = (txData as { id: string } | null)?.id ?? editing?.id;
+      // Upload pending attachment if any
+      if (pendingFile && newTxId) {
+        try {
+          if (pendingFile.size > 5 * 1024 * 1024) {
+            toast.error("المرفق تجاوز 5MB ولم يُرفع");
+          } else {
+            const ext = pendingFile.name.split(".").pop() || "bin";
+            const path = `${user.id}/transaction/${newTxId}/${Date.now()}.${ext}`;
+            const { error: ue } = await supabase.storage.from("receipts").upload(path, pendingFile);
+            if (ue) throw ue;
+            await supabase.from("attachments").insert({
+              user_id: user.id, entity_type: "transaction", entity_id: newTxId,
+              storage_path: path, file_name: pendingFile.name, mime_type: pendingFile.type, size_bytes: pendingFile.size,
+            } as never);
+          }
+        } catch (err) {
+          const e = err as { message?: string };
+          toast.error("فشل رفع المرفق: " + (e.message ?? ""));
+        }
+      }
       const { logAudit } = await import("@/lib/audit");
-      await logAudit(user.id, editing ? "update" : "create", "transaction", editing?.id, { amount: payload.amount, direction: payload.direction });
+      await logAudit(user.id, editing ? "update" : "create", "transaction", newTxId, { amount: payload.amount, direction: payload.direction });
       toast.success(editing ? "تم التعديل" : "تمت الإضافة");
       onSuccess();
       onOpenChange(false);
