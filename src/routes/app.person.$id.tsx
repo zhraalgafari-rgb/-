@@ -36,6 +36,7 @@ function PersonPage() {
   const [draftPhone, setDraftPhone] = useState("");
   const [txs, setTxs] = useState<Tx[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [openings, setOpenings] = useState<OpeningBalance[]>([]);
   const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
