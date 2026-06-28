@@ -176,6 +176,10 @@ function PersonPage() {
 
       <PersonBalancesByCurrency name={name} phone={phone} balances={balancesByCurrency} totalTxCount={txs.length} />
 
+      <CustomerHealthCard personId={id} />
+      <PersonAnalytics txs={txs} />
+
+
       {loading ? (
         <ListSkeleton rows={4} />
       ) : txs.length === 0 ? (
