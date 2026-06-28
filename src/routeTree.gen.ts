@@ -13,7 +13,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppSearchRouteImport } from './routes/app.search'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppRemindersRouteImport } from './routes/app.reminders'
@@ -28,6 +27,7 @@ import { Route as AppCategoriesRouteImport } from './routes/app.categories'
 import { Route as AppBudgetsRouteImport } from './routes/app.budgets'
 import { Route as AppArchiveRouteImport } from './routes/app.archive'
 import { Route as AppActivityRouteImport } from './routes/app.activity'
+import { Route as AppSettingsIndexRouteImport } from './routes/app.settings.index'
 import { Route as AppSettingsSecurityRouteImport } from './routes/app.settings.security'
 import { Route as AppSettingsProfileRouteImport } from './routes/app.settings.profile'
 import { Route as AppSettingsNotificationsRouteImport } from './routes/app.settings.notifications'
@@ -56,11 +56,6 @@ const IndexRoute = IndexRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSearchRoute = AppSearchRouteImport.update({
@@ -133,41 +128,46 @@ const AppActivityRoute = AppActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
-  getParentRoute: () => AppSettingsRoute,
+  id: '/settings/security',
+  path: '/settings/security',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AppSettingsRoute,
+  id: '/settings/profile',
+  path: '/settings/profile',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsNotificationsRoute =
   AppSettingsNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => AppSettingsRoute,
+    id: '/settings/notifications',
+    path: '/settings/notifications',
+    getParentRoute: () => AppRoute,
   } as any)
 const AppSettingsDataRoute = AppSettingsDataRouteImport.update({
-  id: '/data',
-  path: '/data',
-  getParentRoute: () => AppSettingsRoute,
+  id: '/settings/data',
+  path: '/settings/data',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsCompanyRoute = AppSettingsCompanyRouteImport.update({
-  id: '/company',
-  path: '/company',
-  getParentRoute: () => AppSettingsRoute,
+  id: '/settings/company',
+  path: '/settings/company',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsAppearanceRoute = AppSettingsAppearanceRouteImport.update({
-  id: '/appearance',
-  path: '/appearance',
-  getParentRoute: () => AppSettingsRoute,
+  id: '/settings/appearance',
+  path: '/settings/appearance',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsAboutRoute = AppSettingsAboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => AppSettingsRoute,
+  id: '/settings/about',
+  path: '/settings/about',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppPersonIdRoute = AppPersonIdRouteImport.update({
   id: '/person/$id',
@@ -198,7 +198,6 @@ export interface FileRoutesByFullPath {
   '/app/reminders': typeof AppRemindersRoute
   '/app/reports': typeof AppReportsRoute
   '/app/search': typeof AppSearchRoute
-  '/app/settings': typeof AppSettingsRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/app/person/$id': typeof AppPersonIdRoute
   '/app/settings/about': typeof AppSettingsAboutRoute
@@ -208,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/profile': typeof AppSettingsProfileRoute
   '/app/settings/security': typeof AppSettingsSecurityRoute
+  '/app/settings/': typeof AppSettingsIndexRoute
   '/api/public/cron/process': typeof ApiPublicCronProcessRoute
 }
 export interface FileRoutesByTo {
@@ -227,7 +227,6 @@ export interface FileRoutesByTo {
   '/app/reminders': typeof AppRemindersRoute
   '/app/reports': typeof AppReportsRoute
   '/app/search': typeof AppSearchRoute
-  '/app/settings': typeof AppSettingsRouteWithChildren
   '/app': typeof AppIndexRoute
   '/app/person/$id': typeof AppPersonIdRoute
   '/app/settings/about': typeof AppSettingsAboutRoute
@@ -237,6 +236,7 @@ export interface FileRoutesByTo {
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/profile': typeof AppSettingsProfileRoute
   '/app/settings/security': typeof AppSettingsSecurityRoute
+  '/app/settings': typeof AppSettingsIndexRoute
   '/api/public/cron/process': typeof ApiPublicCronProcessRoute
 }
 export interface FileRoutesById {
@@ -258,7 +258,6 @@ export interface FileRoutesById {
   '/app/reminders': typeof AppRemindersRoute
   '/app/reports': typeof AppReportsRoute
   '/app/search': typeof AppSearchRoute
-  '/app/settings': typeof AppSettingsRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/app/person/$id': typeof AppPersonIdRoute
   '/app/settings/about': typeof AppSettingsAboutRoute
@@ -268,6 +267,7 @@ export interface FileRoutesById {
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/profile': typeof AppSettingsProfileRoute
   '/app/settings/security': typeof AppSettingsSecurityRoute
+  '/app/settings/': typeof AppSettingsIndexRoute
   '/api/public/cron/process': typeof ApiPublicCronProcessRoute
 }
 export interface FileRouteTypes {
@@ -290,7 +290,6 @@ export interface FileRouteTypes {
     | '/app/reminders'
     | '/app/reports'
     | '/app/search'
-    | '/app/settings'
     | '/app/'
     | '/app/person/$id'
     | '/app/settings/about'
@@ -300,6 +299,7 @@ export interface FileRouteTypes {
     | '/app/settings/notifications'
     | '/app/settings/profile'
     | '/app/settings/security'
+    | '/app/settings/'
     | '/api/public/cron/process'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -319,7 +319,6 @@ export interface FileRouteTypes {
     | '/app/reminders'
     | '/app/reports'
     | '/app/search'
-    | '/app/settings'
     | '/app'
     | '/app/person/$id'
     | '/app/settings/about'
@@ -329,6 +328,7 @@ export interface FileRouteTypes {
     | '/app/settings/notifications'
     | '/app/settings/profile'
     | '/app/settings/security'
+    | '/app/settings'
     | '/api/public/cron/process'
   id:
     | '__root__'
@@ -349,7 +349,6 @@ export interface FileRouteTypes {
     | '/app/reminders'
     | '/app/reports'
     | '/app/search'
-    | '/app/settings'
     | '/app/'
     | '/app/person/$id'
     | '/app/settings/about'
@@ -359,6 +358,7 @@ export interface FileRouteTypes {
     | '/app/settings/notifications'
     | '/app/settings/profile'
     | '/app/settings/security'
+    | '/app/settings/'
     | '/api/public/cron/process'
   fileRoutesById: FileRoutesById
 }
@@ -397,13 +397,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/settings': {
-      id: '/app/settings'
-      path: '/settings'
-      fullPath: '/app/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/search': {
@@ -504,54 +497,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppActivityRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/settings/': {
+      id: '/app/settings/'
+      path: '/settings'
+      fullPath: '/app/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/settings/security': {
       id: '/app/settings/security'
-      path: '/security'
+      path: '/settings/security'
       fullPath: '/app/settings/security'
       preLoaderRoute: typeof AppSettingsSecurityRouteImport
-      parentRoute: typeof AppSettingsRoute
+      parentRoute: typeof AppRoute
     }
     '/app/settings/profile': {
       id: '/app/settings/profile'
-      path: '/profile'
+      path: '/settings/profile'
       fullPath: '/app/settings/profile'
       preLoaderRoute: typeof AppSettingsProfileRouteImport
-      parentRoute: typeof AppSettingsRoute
+      parentRoute: typeof AppRoute
     }
     '/app/settings/notifications': {
       id: '/app/settings/notifications'
-      path: '/notifications'
+      path: '/settings/notifications'
       fullPath: '/app/settings/notifications'
       preLoaderRoute: typeof AppSettingsNotificationsRouteImport
-      parentRoute: typeof AppSettingsRoute
+      parentRoute: typeof AppRoute
     }
     '/app/settings/data': {
       id: '/app/settings/data'
-      path: '/data'
+      path: '/settings/data'
       fullPath: '/app/settings/data'
       preLoaderRoute: typeof AppSettingsDataRouteImport
-      parentRoute: typeof AppSettingsRoute
+      parentRoute: typeof AppRoute
     }
     '/app/settings/company': {
       id: '/app/settings/company'
-      path: '/company'
+      path: '/settings/company'
       fullPath: '/app/settings/company'
       preLoaderRoute: typeof AppSettingsCompanyRouteImport
-      parentRoute: typeof AppSettingsRoute
+      parentRoute: typeof AppRoute
     }
     '/app/settings/appearance': {
       id: '/app/settings/appearance'
-      path: '/appearance'
+      path: '/settings/appearance'
       fullPath: '/app/settings/appearance'
       preLoaderRoute: typeof AppSettingsAppearanceRouteImport
-      parentRoute: typeof AppSettingsRoute
+      parentRoute: typeof AppRoute
     }
     '/app/settings/about': {
       id: '/app/settings/about'
-      path: '/about'
+      path: '/settings/about'
       fullPath: '/app/settings/about'
       preLoaderRoute: typeof AppSettingsAboutRouteImport
-      parentRoute: typeof AppSettingsRoute
+      parentRoute: typeof AppRoute
     }
     '/app/person/$id': {
       id: '/app/person/$id'
@@ -570,30 +570,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AppSettingsRouteChildren {
-  AppSettingsAboutRoute: typeof AppSettingsAboutRoute
-  AppSettingsAppearanceRoute: typeof AppSettingsAppearanceRoute
-  AppSettingsCompanyRoute: typeof AppSettingsCompanyRoute
-  AppSettingsDataRoute: typeof AppSettingsDataRoute
-  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
-  AppSettingsProfileRoute: typeof AppSettingsProfileRoute
-  AppSettingsSecurityRoute: typeof AppSettingsSecurityRoute
-}
-
-const AppSettingsRouteChildren: AppSettingsRouteChildren = {
-  AppSettingsAboutRoute: AppSettingsAboutRoute,
-  AppSettingsAppearanceRoute: AppSettingsAppearanceRoute,
-  AppSettingsCompanyRoute: AppSettingsCompanyRoute,
-  AppSettingsDataRoute: AppSettingsDataRoute,
-  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
-  AppSettingsProfileRoute: AppSettingsProfileRoute,
-  AppSettingsSecurityRoute: AppSettingsSecurityRoute,
-}
-
-const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
-  AppSettingsRouteChildren,
-)
-
 interface AppRouteChildren {
   AppActivityRoute: typeof AppActivityRoute
   AppArchiveRoute: typeof AppArchiveRoute
@@ -609,9 +585,16 @@ interface AppRouteChildren {
   AppRemindersRoute: typeof AppRemindersRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSearchRoute: typeof AppSearchRoute
-  AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppPersonIdRoute: typeof AppPersonIdRoute
+  AppSettingsAboutRoute: typeof AppSettingsAboutRoute
+  AppSettingsAppearanceRoute: typeof AppSettingsAppearanceRoute
+  AppSettingsCompanyRoute: typeof AppSettingsCompanyRoute
+  AppSettingsDataRoute: typeof AppSettingsDataRoute
+  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
+  AppSettingsProfileRoute: typeof AppSettingsProfileRoute
+  AppSettingsSecurityRoute: typeof AppSettingsSecurityRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -629,9 +612,16 @@ const AppRouteChildren: AppRouteChildren = {
   AppRemindersRoute: AppRemindersRoute,
   AppReportsRoute: AppReportsRoute,
   AppSearchRoute: AppSearchRoute,
-  AppSettingsRoute: AppSettingsRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppPersonIdRoute: AppPersonIdRoute,
+  AppSettingsAboutRoute: AppSettingsAboutRoute,
+  AppSettingsAppearanceRoute: AppSettingsAppearanceRoute,
+  AppSettingsCompanyRoute: AppSettingsCompanyRoute,
+  AppSettingsDataRoute: AppSettingsDataRoute,
+  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
+  AppSettingsProfileRoute: AppSettingsProfileRoute,
+  AppSettingsSecurityRoute: AppSettingsSecurityRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

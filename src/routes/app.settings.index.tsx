@@ -15,7 +15,7 @@ import {
   Coins, Tags, Repeat, Archive, Wallet, LogOut, Moon, Sun,
 } from "lucide-react";
 
-export const Route = createFileRoute("/app/settings")({ component: SettingsPage });
+export const Route = createFileRoute("/app/settings/")({ component: SettingsPage });
 
 function SettingsPage() {
   const { user, signOut } = useAuth();
