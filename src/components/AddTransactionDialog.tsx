@@ -93,6 +93,8 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
       setDate(new Date().toISOString().slice(0, 16));
       setDueDate("");
     }
+    setPendingFile(null);
+    }
   }, [open, defaultPersonId, currencies, editing, prefill, people]);
 
   const submit = async () => {
