@@ -21,6 +21,7 @@ import { Route as AppRecurringRouteImport } from './routes/app.recurring'
 import { Route as AppOpeningBalancesRouteImport } from './routes/app.opening-balances'
 import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
 import { Route as AppInsightsRouteImport } from './routes/app.insights'
+import { Route as AppFollowupRouteImport } from './routes/app.followup'
 import { Route as AppExpensesRouteImport } from './routes/app.expenses'
 import { Route as AppExchangeRatesRouteImport } from './routes/app.exchange-rates'
 import { Route as AppCurrenciesRouteImport } from './routes/app.currencies'
@@ -97,6 +98,11 @@ const AppNotificationsRoute = AppNotificationsRouteImport.update({
 const AppInsightsRoute = AppInsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFollowupRoute = AppFollowupRouteImport.update({
+  id: '/followup',
+  path: '/followup',
   getParentRoute: () => AppRoute,
 } as any)
 const AppExpensesRoute = AppExpensesRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/app/currencies': typeof AppCurrenciesRoute
   '/app/exchange-rates': typeof AppExchangeRatesRoute
   '/app/expenses': typeof AppExpensesRoute
+  '/app/followup': typeof AppFollowupRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/opening-balances': typeof AppOpeningBalancesRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/app/currencies': typeof AppCurrenciesRoute
   '/app/exchange-rates': typeof AppExchangeRatesRoute
   '/app/expenses': typeof AppExpensesRoute
+  '/app/followup': typeof AppFollowupRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/opening-balances': typeof AppOpeningBalancesRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/app/currencies': typeof AppCurrenciesRoute
   '/app/exchange-rates': typeof AppExchangeRatesRoute
   '/app/expenses': typeof AppExpensesRoute
+  '/app/followup': typeof AppFollowupRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/opening-balances': typeof AppOpeningBalancesRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/app/currencies'
     | '/app/exchange-rates'
     | '/app/expenses'
+    | '/app/followup'
     | '/app/insights'
     | '/app/notifications'
     | '/app/opening-balances'
@@ -321,6 +331,7 @@ export interface FileRouteTypes {
     | '/app/currencies'
     | '/app/exchange-rates'
     | '/app/expenses'
+    | '/app/followup'
     | '/app/insights'
     | '/app/notifications'
     | '/app/opening-balances'
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/app/currencies'
     | '/app/exchange-rates'
     | '/app/expenses'
+    | '/app/followup'
     | '/app/insights'
     | '/app/notifications'
     | '/app/opening-balances'
@@ -463,6 +475,13 @@ declare module '@tanstack/react-router' {
       path: '/insights'
       fullPath: '/app/insights'
       preLoaderRoute: typeof AppInsightsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/followup': {
+      id: '/app/followup'
+      path: '/followup'
+      fullPath: '/app/followup'
+      preLoaderRoute: typeof AppFollowupRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/expenses': {
@@ -621,6 +640,7 @@ interface AppRouteChildren {
   AppCurrenciesRoute: typeof AppCurrenciesRoute
   AppExchangeRatesRoute: typeof AppExchangeRatesRoute
   AppExpensesRoute: typeof AppExpensesRoute
+  AppFollowupRoute: typeof AppFollowupRoute
   AppInsightsRoute: typeof AppInsightsRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppOpeningBalancesRoute: typeof AppOpeningBalancesRoute
@@ -641,6 +661,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCurrenciesRoute: AppCurrenciesRoute,
   AppExchangeRatesRoute: AppExchangeRatesRoute,
   AppExpensesRoute: AppExpensesRoute,
+  AppFollowupRoute: AppFollowupRoute,
   AppInsightsRoute: AppInsightsRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppOpeningBalancesRoute: AppOpeningBalancesRoute,
