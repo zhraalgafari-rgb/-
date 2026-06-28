@@ -114,6 +114,21 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
     await signOut();
   };
 
+  const tryBiometric = async () => {
+    if (waitMs > 0) return;
+    const ok = await verifyBiometric();
+    if (ok) {
+      markUnlocked();
+      clearLockTimer();
+      try { sessionStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); } catch { /* ignore */ }
+      setUnlocked(true);
+    } else {
+      toast.error("فشل التحقق بالبصمة");
+    }
+  };
+
+  const bioOn = biometricEnabled();
+
   return (
     <div className="fixed inset-0 z-[100] bg-gradient-hero flex flex-col items-center justify-center text-white p-6">
       <div className="size-16 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center mb-4 shadow-glow">
