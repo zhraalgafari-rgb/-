@@ -97,6 +97,23 @@ function OpeningBalancesPage() {
         </div>
       </div>
 
+      <button
+        onClick={() => setImportOpen(true)}
+        className="w-full p-3 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/10 transition text-right flex items-center gap-3"
+      >
+        <div className="size-10 rounded-xl bg-gradient-primary text-primary-foreground flex items-center justify-center shadow-glow shrink-0">
+          <Sparkles className="size-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-black text-[13px] text-primary">استيراد ذكي من ملف Excel</div>
+          <div className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">
+            استخراج العملاء وأرقام الجوال والمبالغ والعملات تلقائياً بالذكاء الاصطناعي
+          </div>
+        </div>
+      </button>
+
+      <OpeningBalanceImportDialog open={importOpen} onOpenChange={setImportOpen} onDone={load} />
+
       <Card className="p-2.5 space-y-2">
         <div className="text-[11px] font-bold">إضافة رصيد افتتاحي</div>
         <div className="grid grid-cols-2 gap-2">
