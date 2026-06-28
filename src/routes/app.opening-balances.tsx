@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Wallet, Plus, Trash2, Loader2 } from "lucide-react";
+import { ArrowRight, Wallet, Plus, Trash2, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { fmtMoney } from "@/lib/format";
+import { OpeningBalanceImportDialog } from "@/components/import/OpeningBalanceImportDialog";
 
 export const Route = createFileRoute("/app/opening-balances")({ component: OpeningBalancesPage });
 
@@ -32,6 +33,7 @@ function OpeningBalancesPage() {
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -94,6 +96,23 @@ function OpeningBalancesPage() {
           <p className="text-[10px] text-muted-foreground">رصيد بدء لكل عميل وعملة</p>
         </div>
       </div>
+
+      <button
+        onClick={() => setImportOpen(true)}
+        className="w-full p-3 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/10 transition text-right flex items-center gap-3"
+      >
+        <div className="size-10 rounded-xl bg-gradient-primary text-primary-foreground flex items-center justify-center shadow-glow shrink-0">
+          <Sparkles className="size-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-black text-[13px] text-primary">استيراد ذكي من ملف Excel</div>
+          <div className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">
+            استخراج العملاء وأرقام الجوال والمبالغ والعملات تلقائياً بالذكاء الاصطناعي
+          </div>
+        </div>
+      </button>
+
+      <OpeningBalanceImportDialog open={importOpen} onOpenChange={setImportOpen} onDone={load} />
 
       <Card className="p-2.5 space-y-2">
         <div className="text-[11px] font-bold">إضافة رصيد افتتاحي</div>
