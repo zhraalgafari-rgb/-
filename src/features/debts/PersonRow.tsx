@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Phone, Clock, TrendingUp, TrendingDown } from "lucide-react";
 import { fmtMoney, fmtDate } from "@/lib/format";
+import { RowActions } from "@/components/common/RowActions";
 
 interface Person {
   id: string;
@@ -21,13 +22,17 @@ interface Props {
   person: Person;
   balance: PersonBalance;
   index?: number;
+  onEdit?: (p: Person) => void;
+  onArchive?: (p: Person) => void;
+  onDelete?: (p: Person) => void;
 }
 
 /** Rich micro-card for a person — phone, last payment, totals. */
-export function PersonRow({ person, balance, index = 0 }: Props) {
+export function PersonRow({ person, balance, index = 0, onEdit, onArchive, onDelete }: Props) {
   const isCredit = balance.net >= 0;
   const settled = Math.abs(balance.net) < 0.001;
   const hasLast = !!balance.lastDate;
+  const hasActions = !!(onEdit || onArchive || onDelete);
   return (
     <Link
       to="/app/person/$id"
@@ -72,6 +77,15 @@ export function PersonRow({ person, balance, index = 0 }: Props) {
             </>
           )}
         </div>
+        {hasActions && (
+          <div className="shrink-0">
+            <RowActions
+              onEdit={onEdit ? () => onEdit(person) : undefined}
+              onArchive={onArchive ? () => onArchive(person) : undefined}
+              onDelete={onDelete ? () => onDelete(person) : undefined}
+            />
+          </div>
+        )}
       </div>
 
       {(hasLast || (balance.totalCredit ?? 0) > 0 || (balance.totalDebit ?? 0) > 0) && (
