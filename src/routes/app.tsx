@@ -9,7 +9,7 @@ import { BadgeCount } from "@/components/common/BadgeCount";
 import { GlobalSearchDialog } from "@/components/GlobalSearchDialog";
 import { useTheme } from "@/lib/theme";
 import { fetchPending, pollAndNotify } from "@/lib/notifications";
-import { syncRemindersFn } from "@/lib/server/jobs.functions";
+import { syncRemindersFn } from "@/lib/jobs.functions";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
