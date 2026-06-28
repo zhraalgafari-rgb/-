@@ -124,12 +124,12 @@
   * { border-color: var(--color-border); }
   html {
     direction: rtl;
-    /* Micro-scale: shrink the root rem so all rem-based spacing, text and sizing
-       compresses proportionally for a denser, smartphone-grade UI. */
-    font-size: 14px;
+    /* Micro-scale v2: tighter base so rem-based spacing/sizing compresses
+       proportionally for a denser, smartphone-grade accounting UI. */
+    font-size: 12.5px;
   }
   @media (min-width: 768px) {
-    html { font-size: 15px; }
+    html { font-size: 14px; }
   }
   body {
     background-color: var(--color-background);
