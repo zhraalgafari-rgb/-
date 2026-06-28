@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TrendingUp, TrendingDown, Check, ChevronDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Check, ChevronDown, Paperclip, X, FileText, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -60,6 +60,8 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
   const [date, setDate] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -91,6 +93,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
       setDate(new Date().toISOString().slice(0, 16));
       setDueDate("");
     }
+    setPendingFile(null);
   }, [open, defaultPersonId, currencies, editing, prefill, people]);
 
   const submit = async () => {
@@ -121,12 +124,33 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
         due_date: dueDate || null,
         rate_at_tx: rateAtTx,
       };
-      const { error: te } = editing
-        ? await supabase.from("transactions").update(payload).eq("id", editing.id)
-        : await supabase.from("transactions").insert(payload);
+      const { data: txData, error: te } = editing
+        ? await supabase.from("transactions").update(payload).eq("id", editing.id).select("id").single()
+        : await supabase.from("transactions").insert(payload).select("id").single();
       if (te) throw te;
+      const newTxId = (txData as { id: string } | null)?.id ?? editing?.id;
+      // Upload pending attachment if any
+      if (pendingFile && newTxId) {
+        try {
+          if (pendingFile.size > 5 * 1024 * 1024) {
+            toast.error("المرفق تجاوز 5MB ولم يُرفع");
+          } else {
+            const ext = pendingFile.name.split(".").pop() || "bin";
+            const path = `${user.id}/transaction/${newTxId}/${Date.now()}.${ext}`;
+            const { error: ue } = await supabase.storage.from("receipts").upload(path, pendingFile);
+            if (ue) throw ue;
+            await supabase.from("attachments").insert({
+              user_id: user.id, entity_type: "transaction", entity_id: newTxId,
+              storage_path: path, file_name: pendingFile.name, mime_type: pendingFile.type, size_bytes: pendingFile.size,
+            } as never);
+          }
+        } catch (err) {
+          const e = err as { message?: string };
+          toast.error("فشل رفع المرفق: " + (e.message ?? ""));
+        }
+      }
       const { logAudit } = await import("@/lib/audit");
-      await logAudit(user.id, editing ? "update" : "create", "transaction", editing?.id, { amount: payload.amount, direction: payload.direction });
+      await logAudit(user.id, editing ? "update" : "create", "transaction", newTxId, { amount: payload.amount, direction: payload.direction });
       toast.success(editing ? "تم التعديل" : "تمت الإضافة");
       onSuccess();
       onOpenChange(false);
@@ -225,9 +249,50 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
             </label>
           </RadioGroup>
 
-          {editing && (
+          {editing ? (
             <div className="pt-2 border-t">
               <AttachmentsManager entityType="transaction" entityId={editing.id} />
+            </div>
+          ) : (
+            <div className="pt-2 border-t space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                <Paperclip className="size-3.5" /> إرفاق مستند (اختياري — فاتورة، سند، صورة)
+              </Label>
+              <input
+                ref={fileRef}
+                type="file"
+                className="hidden"
+                accept="image/*,application/pdf"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  if (f.size > 5 * 1024 * 1024) { toast.error("الحد الأقصى 5MB"); return; }
+                  setPendingFile(f);
+                }}
+              />
+              {pendingFile ? (
+                <div className="flex items-center justify-between gap-2 rounded-lg border-2 border-primary/30 bg-primary/5 px-2.5 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {pendingFile.type.startsWith("image/") ? <ImageIcon className="size-4 text-primary shrink-0" /> : <FileText className="size-4 text-primary shrink-0" />}
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-medium truncate">{pendingFile.name}</div>
+                      <div className="text-[10px] text-muted-foreground">{(pendingFile.size / 1024).toFixed(1)} KB</div>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => { setPendingFile(null); if (fileRef.current) fileRef.current.value = ""; }} className="p-1 rounded hover:bg-danger/10 text-danger shrink-0">
+                    <X className="size-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary px-3 py-3 text-[12px] font-medium transition-colors"
+                >
+                  <Paperclip className="size-4" />
+                  اختر ملفاً للرفع (PDF أو صورة، حد أقصى 5MB)
+                </button>
+              )}
             </div>
           )}
 
