@@ -14,13 +14,13 @@ interface Tx {
 }
 interface Currency { id: string; name: string }
 
-interface Props {
-  txs: Tx[];
+interface Props<T extends Tx = Tx> {
+  txs: T[];
   currencies: Currency[];
   running: Record<string, number>;
-  onEdit: (t: Tx) => void;
+  onEdit: (t: T) => void;
   onDelete: (id: string) => void;
-  onTogglePaid?: (t: Tx) => void;
+  onTogglePaid?: (t: T) => void;
 }
 
 function dueState(due: string | null | undefined, is_paid?: boolean): "none" | "overdue" | "soon" | "paid" {
