@@ -52,6 +52,7 @@ function SettingsPage() {
       {/* Account */}
       <SettingsGroup title="الحساب">
         <SettingsRow to="/app/settings/profile" icon={User} label="الملف الشخصي" desc="الاسم والصورة" tone="primary" />
+        <SettingsRow to="/app/settings/company" icon={Wallet} label="بيانات المنشأة" desc="الشعار والعنوان للكشوف" tone="accent" />
         <SettingsRow to="/app/settings/security" icon={ShieldCheck} label="الأمان والخصوصية" desc="قفل التطبيق والبصمة" tone="success" />
         <SettingsRow to="/app/settings/notifications" icon={Bell} label="الإشعارات" desc="تذكيرات الديون والمصاريف" tone="warning" />
       </SettingsGroup>
