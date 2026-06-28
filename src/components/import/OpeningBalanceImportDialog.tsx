@@ -133,7 +133,7 @@ export function OpeningBalanceImportDialog({ open, onOpenChange, onDone }: Props
           <div className="py-8 space-y-3 text-center">
             <Loader2 className="size-8 animate-spin text-primary mx-auto" />
             <div className="text-[12px] font-bold">يقوم الذكاء الاصطناعي بتحليل البيانات…</div>
-            <Progress value={progress} className="h-2" />
+            <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-gradient-primary transition-all" style={{ width: `${progress}%` }} /></div>
             <div className="text-[10px] text-muted-foreground">{progress}% من {rawRows.length} صف</div>
           </div>
         )}
