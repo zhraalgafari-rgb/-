@@ -1,12 +1,20 @@
 {
-  "name": "دفترك",
+  "name": "دفترك - إدارة الديون والمصاريف",
   "short_name": "دفترك",
-  "description": "إدارة الديون والمصاريف باحترافية",
+  "description": "تطبيق محاسبي احترافي لإدارة الديون والمصاريف ومتابعة العملاء.",
   "start_url": "/app",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#1e40af",
   "lang": "ar",
   "dir": "rtl",
-  "icons": []
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }
