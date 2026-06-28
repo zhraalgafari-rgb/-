@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Plus, UserPlus, Users, Sparkles, Loader2 } from "lucide-react";
+import { Plus, UserPlus, Users, Sparkles, Loader2, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { SmartAddDialog, type ParsedDraft } from "@/components/ai/SmartAddDialog";
 import { ListSkeleton } from "@/components/Skeleton";
@@ -13,17 +13,19 @@ import { SearchBar } from "@/components/common/SearchBar";
 import { FabButton } from "@/components/common/FabButton";
 import { DebtsHeader } from "@/features/debts/DebtsHeader";
 import { MultiCurrencyTotals } from "@/features/debts/MultiCurrencyTotals";
-import { PersonRow } from "@/features/debts/PersonRow";
+import { PersonRow, type PersonBalance } from "@/features/debts/PersonRow";
+import { PersonTable } from "@/features/debts/PersonTable";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 export const Route = createFileRoute("/app/")({ component: DebtsHome });
 
 interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
-interface Person { id: string; name: string; type: string; is_archived: boolean; avatar_color: string | null }
+interface Person { id: string; name: string; type: string; is_archived: boolean; avatar_color: string | null; phone: string | null }
 interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string }
 
 type Filter = "all" | "credit" | "debit";
 type Sort = "active" | "name" | "recent";
+type ViewMode = "cards" | "table";
 
 function DebtsHome() {
   const { user } = useAuth();
@@ -37,6 +39,8 @@ function DebtsHome() {
   const [prefill, setPrefill] = useState<ParsedDraft | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("active");
+  const [view, setView] = useState<ViewMode>(() => (typeof localStorage !== "undefined" && (localStorage.getItem("people_view") as ViewMode)) || "cards");
+  useEffect(() => { try { localStorage.setItem("people_view", view); } catch { /* ignore */ } }, [view]);
 
   const load = async () => {
     if (!user) return;
@@ -59,17 +63,23 @@ function DebtsHome() {
   const baseCurrency = currencies.find((c) => c.is_base) ?? currencies[0];
 
   const personBalances = useMemo(() => {
-    const map = new Map<string, { net: number; count: number; lastDate: number }>();
+    const map = new Map<string, PersonBalance>();
     for (const t of txs) {
       const cur = currencies.find((c) => c.id === t.currency_id);
       const rate = cur?.rate ?? 1;
       const sign = t.direction === "credit" ? 1 : -1;
       const dateMs = new Date(t.transaction_date).getTime();
-      const prev = map.get(t.person_id) ?? { net: 0, count: 0, lastDate: 0 };
+      const amt = Number(t.amount) * rate;
+      const prev = map.get(t.person_id) ?? { net: 0, count: 0, lastDate: 0, lastAmount: 0, lastDirection: "", totalCredit: 0, totalDebit: 0 };
+      const isLater = dateMs >= prev.lastDate;
       map.set(t.person_id, {
-        net: prev.net + Number(t.amount) * sign * rate,
+        net: prev.net + amt * sign,
         count: prev.count + 1,
         lastDate: Math.max(prev.lastDate, dateMs),
+        lastAmount: isLater ? amt : prev.lastAmount,
+        lastDirection: isLater ? t.direction : prev.lastDirection,
+        totalCredit: (prev.totalCredit ?? 0) + (t.direction === "credit" ? amt : 0),
+        totalDebit: (prev.totalDebit ?? 0) + (t.direction === "debit" ? amt : 0),
       });
     }
     return map;
@@ -122,7 +132,7 @@ function DebtsHome() {
 
       <MultiCurrencyTotals txs={txs} currencies={currencies} />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <div className="flex-1"><SearchBar value={q} onChange={setQ} placeholder="ابحث عن شخص..." /></div>
         <select
           value={sort}
@@ -134,6 +144,24 @@ function DebtsHome() {
           <option value="recent">الأحدث</option>
           <option value="name">أبجدي</option>
         </select>
+        <div className="inline-flex h-9 rounded-lg border bg-card overflow-hidden" role="group" aria-label="طريقة العرض">
+          <button
+            onClick={() => setView("cards")}
+            className={`px-2 flex items-center justify-center transition-colors ${view === "cards" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            aria-label="بطاقات"
+            aria-pressed={view === "cards"}
+          >
+            <LayoutGrid className="size-3.5" />
+          </button>
+          <button
+            onClick={() => setView("table")}
+            className={`px-2 flex items-center justify-center transition-colors border-r ${view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            aria-label="جدول"
+            aria-pressed={view === "table"}
+          >
+            <TableIcon className="size-3.5" />
+          </button>
+        </div>
       </div>
 
       {filter !== "all" && (
@@ -160,6 +188,13 @@ function DebtsHome() {
         ) : (
           <EmptyState icon={Users} title="لا توجد نتائج" description="جرّب كلمة بحث أخرى أو ألغِ التصفية." variant="compact" />
         )
+      ) : view === "table" ? (
+        <PersonTable
+          rows={filtered.map((p) => ({
+            person: p,
+            balance: personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0, totalCredit: 0, totalDebit: 0 },
+          }))}
+        />
       ) : (
         <div className="space-y-2">
           {filtered.map((p, i) => (
