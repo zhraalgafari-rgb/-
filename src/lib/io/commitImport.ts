@@ -57,8 +57,8 @@ export async function commitImportedTxs(
   }
 
   // Build transactions & opening balances payloads
-  const txPayload: Record<string, unknown>[] = [];
-  const openPayload: Record<string, unknown>[] = [];
+  const txPayload: { user_id: string; person_id: string; currency_id: string; amount: number; direction: string; details: string | null; transaction_date: string; rate_at_tx: number }[] = [];
+  const openPayload: { user_id: string; person_id: string; currency_id: string; amount: number; direction: string; note: string }[] = [];
   for (const r of rows) {
     const person = peopleMap.get(r.name.trim().toLowerCase());
     if (!person) continue;
