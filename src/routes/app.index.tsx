@@ -12,6 +12,7 @@ import { processDueRecurring } from "@/lib/recurring";
 import { SearchBar } from "@/components/common/SearchBar";
 import { FabButton } from "@/components/common/FabButton";
 import { DebtsHeader } from "@/features/debts/DebtsHeader";
+import { MultiCurrencyTotals } from "@/features/debts/MultiCurrencyTotals";
 import { PersonRow } from "@/features/debts/PersonRow";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
@@ -118,6 +119,8 @@ function DebtsHome() {
         filter={filter}
         onFilterChange={setFilter}
       />
+
+      <MultiCurrencyTotals txs={txs} currencies={currencies} />
 
       <div className="flex items-center gap-2">
         <div className="flex-1"><SearchBar value={q} onChange={setQ} placeholder="ابحث عن شخص..." /></div>

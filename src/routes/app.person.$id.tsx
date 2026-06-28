@@ -15,9 +15,10 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { exportPersonStatementPDF } from "@/lib/io/exportPdf";
 import { exportPersonToExcel } from "@/lib/io/exportExcel";
 import { PersonActionsBar } from "@/features/debts/person/PersonActionsBar";
-import { PersonBalanceCard } from "@/features/debts/person/PersonBalanceCard";
+import { PersonBalancesByCurrency } from "@/features/debts/person/PersonBalancesByCurrency";
 import { PersonTimeline } from "@/features/debts/person/PersonTimeline";
 import { AiReminderDialog } from "@/components/ai/AiReminderDialog";
+import { computeBalancesByCurrency, computeRunningByCurrency, type OpeningBalance } from "@/lib/money/balances";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
@@ -35,6 +36,7 @@ function PersonPage() {
   const [draftPhone, setDraftPhone] = useState("");
   const [txs, setTxs] = useState<Tx[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [openings, setOpenings] = useState<OpeningBalance[]>([]);
   const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
@@ -47,11 +49,12 @@ function PersonPage() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [{ data: person }, { data: t }, { data: c }, { data: p }] = await Promise.all([
+    const [{ data: person }, { data: t }, { data: c }, { data: p }, { data: ob }] = await Promise.all([
       supabase.from("people").select("name,phone").eq("id", id).single(),
       supabase.from("transactions").select("*").eq("person_id", id).order("transaction_date", { ascending: false }),
       supabase.from("currencies").select("*").order("is_base", { ascending: false }),
       supabase.from("people").select("id,name"),
+      supabase.from("opening_balances").select("currency_id,amount,direction").eq("person_id", id),
     ]);
     setName(person?.name ?? "");
     setPhone(person?.phone ?? null);
@@ -60,31 +63,26 @@ function PersonPage() {
     setTxs((t ?? []) as Tx[]);
     setCurrencies((c ?? []) as Currency[]);
     setPeople((p ?? []) as { id: string; name: string }[]);
+    setOpenings((ob ?? []) as OpeningBalance[]);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, [user, id]);
 
-  const balance = useMemo(() => {
-    let net = 0;
-    for (const t of txs) {
-      const cur = currencies.find((c) => c.id === t.currency_id);
-      net += Number(t.amount) * (t.direction === "credit" ? 1 : -1) * (cur?.rate ?? 1);
-    }
-    return net;
-  }, [txs, currencies]);
+  const balancesByCurrency = useMemo(
+    () => computeBalancesByCurrency(txs, currencies, openings),
+    [txs, currencies, openings],
+  );
 
-  const running = useMemo(() => {
-    const ordered = [...txs].sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime());
-    const map: Record<string, number> = {};
-    let acc = 0;
-    for (const t of ordered) {
-      const cur = currencies.find((c) => c.id === t.currency_id);
-      acc += Number(t.amount) * (t.direction === "credit" ? 1 : -1) * (cur?.rate ?? 1);
-      map[t.id] = acc;
-    }
-    return map;
-  }, [txs, currencies]);
+  // Used by AI reminder dialog — pick base currency balance (or first available)
+  const primaryBalance = balancesByCurrency.find((b) => b.currency.is_base) ?? balancesByCurrency[0];
+  const balanceForActions = primaryBalance?.balance ?? 0;
+
+  const running = useMemo(
+    () => computeRunningByCurrency(txs, openings),
+    [txs, openings],
+  );
+
 
   const delTx = async () => {
     if (!delTxId) return;
@@ -139,7 +137,11 @@ function PersonPage() {
       const sign = t.direction === "credit" ? "+" : "-";
       lines.push(`${fmtDate(t.transaction_date)} | ${sign}${fmtMoney(Number(t.amount))} ${cur}${t.details ? " — " + t.details : ""}`);
     }
-    lines.push("", `الرصيد: ${balance >= 0 ? "+" : ""}${fmtMoney(balance)} ${balance >= 0 ? "(له)" : "(عليه)"}`);
+    lines.push("");
+    for (const b of balancesByCurrency) {
+      const tag = b.balance >= 0 ? "(له)" : "(عليه)";
+      lines.push(`${b.currency.name}: ${fmtMoney(Math.abs(b.balance))} ${b.currency.symbol} ${tag}`);
+    }
     lines.push("— عبر تطبيق دفترك");
     return lines.join("\n");
   };
@@ -157,12 +159,10 @@ function PersonPage() {
     window.open(p ? `https://wa.me/${p}?text=${text}` : `https://wa.me/?text=${text}`, "_blank");
   };
 
-  const baseCur = currencies.find((c) => c.is_base);
-
   return (
     <div className="space-y-3 animate-in fade-in duration-300">
       <PersonActionsBar
-        onPdf={() => exportPersonStatementPDF({ personName: name, phone, txs, currencies, balance })}
+        onPdf={() => exportPersonStatementPDF({ personName: name, phone, txs, currencies, balance: balanceForActions })}
         onExcel={() => exportPersonToExcel(id, name)}
         onShare={share}
         onWhatsApp={shareWhatsApp}
@@ -172,7 +172,7 @@ function PersonPage() {
         onDelete={() => setConfirmDelPerson(true)}
       />
 
-      <PersonBalanceCard name={name} phone={phone} balance={balance} txCount={txs.length} />
+      <PersonBalancesByCurrency name={name} phone={phone} balances={balancesByCurrency} totalTxCount={txs.length} />
 
       {loading ? (
         <ListSkeleton rows={4} />
@@ -205,8 +205,8 @@ function PersonPage() {
       <AiReminderDialog
         open={openAi} onOpenChange={setOpenAi}
         personName={name}
-        amount={Math.abs(balance)}
-        currency={baseCur?.name}
+        amount={Math.abs(balanceForActions)}
+        currency={primaryBalance?.currency.name}
         phone={phone}
       />
 
