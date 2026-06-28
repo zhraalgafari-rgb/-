@@ -1,16 +1,32 @@
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Arabic-safe PDF pipeline.
+ *
+ * We render a styled HTML document (RTL, Tajawal/Cairo via Google Fonts already
+ * loaded in __root.tsx) into an offscreen DOM node, capture it with html2canvas,
+ * then paginate the resulting bitmap into a jsPDF A4 document. This guarantees
+ * correct Arabic shaping, RTL, mixed Arabic/English on the same line, and
+ * identical rendering across Acrobat / Chrome / Edge / Firefox / iOS / Android.
+ */
 
 function fmt(n: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(n);
 }
 function fmtInt(n: number) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 0 }).format(n);
 }
 function dmy(d: string | Date) {
   const x = typeof d === "string" ? new Date(d) : d;
   return `${String(x.getDate()).padStart(2, "0")}/${String(x.getMonth() + 1).padStart(2, "0")}/${x.getFullYear()}`;
+}
+function esc(s: string | null | undefined) {
+  if (s == null) return "";
+  return String(s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 interface Tx { amount: number; direction: string; transaction_date: string; details: string | null; currency_id: string }
@@ -43,95 +59,38 @@ async function logoDataUrl(path: string): Promise<string | null> {
   } catch { return null; }
 }
 
-/** Brand colors */
-const C_PRIMARY: [number, number, number] = [29, 78, 216];   // deep blue
-const C_PRIMARY_SOFT: [number, number, number] = [219, 234, 254];
-const C_ACCENT: [number, number, number] = [16, 185, 129];   // emerald
-const C_DANGER: [number, number, number] = [220, 38, 38];    // rose
-const C_TEXT: [number, number, number] = [17, 24, 39];
-const C_MUTED: [number, number, number] = [107, 114, 128];
-const C_BORDER: [number, number, number] = [229, 231, 235];
-const C_BG_ALT: [number, number, number] = [249, 250, 251];
-
-function drawHeader(doc: jsPDF, company: CompanyInfo | null, logo: string | null) {
-  const pageW = doc.internal.pageSize.getWidth();
-
-  // Top brand band
-  doc.setFillColor(...C_PRIMARY);
-  doc.rect(0, 0, pageW, 28, "F");
-  // accent stripe
-  doc.setFillColor(...C_ACCENT);
-  doc.rect(0, 28, pageW, 1.5, "F");
-
-  // Title
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("Statement of Account", pageW / 2, 13, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text("كشف حساب تفصيلي", pageW / 2, 19, { align: "center" });
-  doc.setFontSize(8);
-  doc.text(`Date: ${dmy(new Date())}`, pageW - 12, 24, { align: "right" });
-
-  // Company block
-  doc.setTextColor(...C_TEXT);
-  if (logo) {
-    try { doc.addImage(logo, "PNG", 12, 34, 20, 20); } catch { /* ignore */ }
-  }
-  const x = logo ? 36 : 12;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-  doc.text(company?.name ?? "Daftarak  •  دفترك", x, 40);
-  doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-  doc.setTextColor(...C_MUTED);
-  const meta: string[] = [];
-  if (company?.phone) meta.push(`Tel: ${company.phone}`);
-  if (company?.email) meta.push(company.email);
-  if (company?.tax_number) meta.push(`Tax# ${company.tax_number}`);
-  if (meta.length) doc.text(meta.join("   |   "), x, 45);
-  if (company?.address) doc.text(company.address, x, 49);
-
-  return 60;
+/** Ensure the Arabic web font is fully loaded before capturing. */
+async function ensureArabicFontLoaded() {
+  try {
+    const f: FontFaceSet | undefined = (document as Document & { fonts?: FontFaceSet }).fonts;
+    if (!f) return;
+    await Promise.all([
+      f.load('700 16px "Tajawal"'),
+      f.load('500 14px "Tajawal"'),
+      f.load('400 12px "Tajawal"'),
+    ]);
+    await f.ready;
+  } catch { /* ignore */ }
 }
 
-function drawCustomerBox(doc: jsPDF, y: number, personName: string, phone?: string | null) {
-  const pageW = doc.internal.pageSize.getWidth();
-  doc.setFillColor(...C_PRIMARY_SOFT);
-  doc.setDrawColor(...C_PRIMARY);
-  doc.setLineWidth(0.4);
-  doc.roundedRect(12, y, pageW - 24, 14, 2, 2, "FD");
-  doc.setTextColor(...C_TEXT);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-  doc.text(`Customer / العميل:`, 16, y + 6);
-  doc.setFont("helvetica", "normal");
-  doc.text(personName, 50, y + 6);
-  if (phone) {
-    doc.setFont("helvetica", "bold");
-    doc.text("Phone:", 16, y + 11);
-    doc.setFont("helvetica", "normal");
-    doc.text(phone, 30, y + 11);
-  }
-  return y + 18;
-}
+const C = {
+  primary: "#1d4ed8",
+  primarySoft: "#dbeafe",
+  accent: "#059669",
+  accentSoft: "#d1fae5",
+  danger: "#dc2626",
+  dangerSoft: "#fee2e2",
+  text: "#111827",
+  muted: "#6b7280",
+  border: "#e5e7eb",
+  bgAlt: "#f9fafb",
+  white: "#ffffff",
+};
 
-function drawKpiRow(doc: jsPDF, y: number, kpis: { label: string; value: string; color: [number, number, number] }[]) {
-  const pageW = doc.internal.pageSize.getWidth();
-  const total = pageW - 24;
-  const gap = 3;
-  const w = (total - gap * (kpis.length - 1)) / kpis.length;
-  kpis.forEach((k, i) => {
-    const x = 12 + i * (w + gap);
-    doc.setDrawColor(...C_BORDER);
-    doc.setFillColor(...C_BG_ALT);
-    doc.roundedRect(x, y, w, 13, 1.5, 1.5, "FD");
-    doc.setTextColor(...C_MUTED);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
-    doc.text(k.label, x + 2.5, y + 4.5);
-    doc.setTextColor(...k.color);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-    doc.text(k.value, x + 2.5, y + 10.5);
-  });
-  return y + 17;
+function statusFor(closing: number): { label: string; bg: string } {
+  if (closing > 0) return { label: "رصيد لكم (له عندك)", bg: C.accent };
+  if (closing < 0) return { label: "رصيد عليكم", bg: C.danger };
+  return { label: "مسددة بالكامل", bg: C.muted };
 }
 
 export async function exportPersonStatementPDF(opts: {
@@ -147,6 +106,7 @@ export async function exportPersonStatementPDF(opts: {
   const { personName, phone, txs, currencies, openings = [], dateFrom, dateTo } = opts;
   const company = await fetchCompany();
   const logo = company?.logo_path ? await logoDataUrl(company.logo_path) : null;
+  await ensureArabicFontLoaded();
 
   // Period filter
   const filteredTxs = txs.filter((t) => {
@@ -156,150 +116,238 @@ export async function exportPersonStatementPDF(opts: {
     return true;
   });
 
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageW = doc.internal.pageSize.getWidth();
-  let y = drawHeader(doc, company, logo);
-  y = drawCustomerBox(doc, y, personName, phone);
-
-  // Period label
-  if (dateFrom || dateTo) {
-    doc.setTextColor(...C_MUTED); doc.setFontSize(8); doc.setFont("helvetica", "italic");
-    doc.text(`Period: ${dateFrom ? dmy(dateFrom) : "—"}  →  ${dateTo ? dmy(dateTo) : "—"}`, 12, y);
-    y += 5;
-  }
-
-  // Determine currencies used
+  // Currencies in scope
   const used = currencies.filter((c) =>
     filteredTxs.some((t) => t.currency_id === c.id) || openings.some((o) => o.currency_id === c.id),
   );
-  if (used.length === 0) used.push(...currencies.slice(0, 1));
-  // base first
+  if (used.length === 0 && currencies.length > 0) used.push(currencies[0]);
   used.sort((a, b) => Number(b.is_base) - Number(a.is_base));
 
-  // Overall KPI (multi-currency safe by base equivalent)
+  // KPIs in base currency
   let totalCredit = 0, totalDebit = 0;
   for (const t of filteredTxs) {
     const r = currencies.find((c) => c.id === t.currency_id)?.rate ?? 1;
     if (t.direction === "credit") totalCredit += Number(t.amount) * r;
     else totalDebit += Number(t.amount) * r;
   }
-  const base = currencies.find((c) => c.is_base);
+  const base = currencies.find((c) => c.is_base) ?? currencies[0];
   const baseSym = base?.symbol ?? "";
-  y = drawKpiRow(doc, y, [
-    { label: `Total Credit (${baseSym})`, value: fmt(totalCredit), color: C_ACCENT },
-    { label: `Total Debit (${baseSym})`,  value: fmt(totalDebit),  color: C_DANGER },
-    { label: "Transactions",              value: fmtInt(filteredTxs.length), color: C_PRIMARY },
-  ]);
-  y += 2;
 
-  // Per-currency sections
-  for (const cur of used) {
+  // Build per-currency sections HTML
+  const sections = used.map((cur) => {
     const open = openings.filter((o) => o.currency_id === cur.id)
       .reduce((s, o) => s + Number(o.amount) * (o.direction === "credit" ? 1 : -1), 0);
     const curTxs = [...filteredTxs.filter((t) => t.currency_id === cur.id)]
       .sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime());
 
-    if (curTxs.length === 0 && open === 0) continue;
+    if (curTxs.length === 0 && open === 0) return "";
 
-    // Currency header
-    if (y > 250) { doc.addPage(); y = 20; }
-    doc.setFillColor(...C_PRIMARY);
-    doc.rect(12, y, pageW - 24, 8, "F");
-    doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-    doc.text(`${cur.name}  (${cur.symbol})`, 16, y + 5.6);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-    doc.text(`Currency Section`, pageW - 16, y + 5.6, { align: "right" });
-    y += 10;
-
-    // Per-currency KPIs
-    let cCredit = 0, cDebit = 0;
-    for (const t of curTxs) {
-      if (t.direction === "credit") cCredit += Number(t.amount);
-      else cDebit += Number(t.amount);
-    }
-    const closing = open + cCredit - cDebit;
-
-    // Build rows
     let acc = open;
-    const body: (string | number)[][] = [];
-    let idx = 1;
+    let cCredit = 0, cDebit = 0;
+    const rows: string[] = [];
+
     if (open !== 0) {
-      body.push([
-        "—", "0", "Opening Balance",
-        open > 0 ? fmt(Math.abs(open)) : "—",
-        open < 0 ? fmt(Math.abs(open)) : "—",
-        fmt(open), "",
-      ]);
-    }
-    for (const t of curTxs) {
-      const signed = Number(t.amount) * (t.direction === "credit" ? 1 : -1);
-      acc += signed;
-      body.push([
-        dmy(t.transaction_date),
-        String(idx++),
-        t.details ?? (t.direction === "credit" ? "Credit" : "Debit"),
-        t.direction === "credit" ? fmt(Number(t.amount)) : "—",
-        t.direction === "debit"  ? fmt(Number(t.amount)) : "—",
-        fmt(acc),
-        "",
-      ]);
+      rows.push(`
+        <tr style="background:${C.primarySoft};">
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:center;">—</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:center;">0</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:right;font-weight:700;">رصيد افتتاحي</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;color:${C.accent};font-weight:700;">${open > 0 ? fmt(Math.abs(open)) : "—"}</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;color:${C.danger};font-weight:700;">${open < 0 ? fmt(Math.abs(open)) : "—"}</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;font-weight:700;">${fmt(open)}</td>
+        </tr>`);
     }
 
-    autoTable(doc, {
-      startY: y,
-      head: [["Date", "#", "Description", "Credit (له)", "Debit (عليه)", `Balance (${cur.symbol})`, "Ref"]],
-      body,
-      styles: { fontSize: 8, cellPadding: 1.6, textColor: C_TEXT, lineColor: C_BORDER, lineWidth: 0.1 },
-      headStyles: { fillColor: C_PRIMARY, textColor: 255, halign: "center", fontStyle: "bold", fontSize: 8.5 },
-      alternateRowStyles: { fillColor: C_BG_ALT },
-      columnStyles: {
-        0: { halign: "center", cellWidth: 22 },
-        1: { halign: "center", cellWidth: 8 },
-        2: { halign: "left",   cellWidth: "auto" },
-        3: { halign: "right",  cellWidth: 26, textColor: C_ACCENT, fontStyle: "bold" },
-        4: { halign: "right",  cellWidth: 26, textColor: C_DANGER, fontStyle: "bold" },
-        5: { halign: "right",  cellWidth: 28, fontStyle: "bold" },
-        6: { halign: "center", cellWidth: 14 },
-      },
-      margin: { left: 12, right: 12 },
+    curTxs.forEach((t, i) => {
+      const amt = Number(t.amount);
+      if (t.direction === "credit") { acc += amt; cCredit += amt; }
+      else { acc -= amt; cDebit += amt; }
+      const zebra = i % 2 === 1 ? C.bgAlt : C.white;
+      const desc = t.details ?? (t.direction === "credit" ? "دائن" : "مدين");
+      rows.push(`
+        <tr style="background:${zebra};">
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:center;white-space:nowrap;">${dmy(t.transaction_date)}</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:center;">${i + 1}</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:right;">${esc(desc)}</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;color:${C.accent};font-weight:700;white-space:nowrap;">${t.direction === "credit" ? fmt(amt) : "—"}</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;color:${C.danger};font-weight:700;white-space:nowrap;">${t.direction === "debit"  ? fmt(amt) : "—"}</td>
+          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;font-weight:700;white-space:nowrap;">${fmt(acc)}</td>
+        </tr>`);
     });
 
-    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+    const closing = open + cCredit - cDebit;
+    const st = statusFor(closing);
 
-    // Closing balance band
-    const status = closing > 0 ? "Owed to you  /  له عندك"
-                   : closing < 0 ? "You owe  /  عليك"
-                   : "Settled  /  مسددة";
-    const color = closing >= 0 ? C_ACCENT : C_DANGER;
-    doc.setFillColor(...color);
-    doc.roundedRect(12, finalY + 2, pageW - 24, 9, 1.5, 1.5, "F");
-    doc.setTextColor(255); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-    doc.text(`Closing Balance:  ${fmt(Math.abs(closing))} ${cur.symbol}`, 16, finalY + 8);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-    doc.text(status, pageW - 16, finalY + 8, { align: "right" });
-    doc.setTextColor(...C_TEXT);
-    y = finalY + 15;
+    return `
+      <section style="margin-top:14px;page-break-inside:auto;">
+        <div style="background:${C.primary};color:#fff;padding:8px 12px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:700;font-size:13px;">${esc(cur.name)} <span style="opacity:.85;">(${esc(cur.symbol)})</span></div>
+          <div style="font-size:11px;opacity:.9;">قسم العملة</div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:auto;">
+          <thead>
+            <tr style="background:${C.primary};color:#fff;">
+              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:center;width:78px;">التاريخ</th>
+              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:center;width:30px;">#</th>
+              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:right;">البيان / الوصف</th>
+              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:left;width:90px;">دائن (له)</th>
+              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:left;width:90px;">مدين (عليه)</th>
+              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:left;width:100px;">الرصيد (${esc(cur.symbol)})</th>
+            </tr>
+          </thead>
+          <tbody>${rows.join("")}</tbody>
+          <tfoot>
+            <tr style="background:${C.bgAlt};font-weight:700;">
+              <td colspan="3" style="padding:7px 8px;border:1px solid ${C.border};text-align:right;">الإجماليات</td>
+              <td style="padding:7px 8px;border:1px solid ${C.border};text-align:left;color:${C.accent};">${fmt(cCredit)}</td>
+              <td style="padding:7px 8px;border:1px solid ${C.border};text-align:left;color:${C.danger};">${fmt(cDebit)}</td>
+              <td style="padding:7px 8px;border:1px solid ${C.border};text-align:left;">${fmt(closing)}</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div style="background:${st.bg};color:#fff;padding:8px 12px;border-radius:0 0 6px 6px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:700;font-size:12px;">${st.label}</div>
+          <div style="font-weight:800;font-size:13px;">${fmt(Math.abs(closing))} ${esc(cur.symbol)}</div>
+        </div>
+      </section>`;
+  }).join("");
+
+  const periodLabel = (dateFrom || dateTo)
+    ? `الفترة: ${dateFrom ? dmy(dateFrom) : "—"} ← ${dateTo ? dmy(dateTo) : "—"}`
+    : "";
+
+  const html = `
+    <div id="__statement_root" dir="rtl" lang="ar" style="
+      width: 794px; padding: 28px; background: #fff; color: ${C.text};
+      font-family: 'Tajawal','Cairo','Noto Sans Arabic','IBM Plex Sans Arabic','Segoe UI',Arial,sans-serif;
+      font-size: 12px; line-height: 1.55; -webkit-font-smoothing: antialiased;">
+
+      <!-- Brand header -->
+      <div style="background:${C.primary};color:#fff;padding:14px 16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          ${logo ? `<img src="${logo}" style="width:48px;height:48px;border-radius:8px;background:#fff;object-fit:contain;padding:3px;" crossorigin="anonymous" />` : ""}
+          <div>
+            <div style="font-size:18px;font-weight:800;">${esc(company?.name) || "دفترك"}</div>
+            <div style="font-size:10.5px;opacity:.9;margin-top:2px;">
+              ${[company?.phone && `هاتف: ${esc(company.phone)}`, company?.email && esc(company.email), company?.tax_number && `الرقم الضريبي: ${esc(company.tax_number)}`].filter(Boolean).join("  •  ")}
+            </div>
+            ${company?.address ? `<div style="font-size:10.5px;opacity:.85;margin-top:2px;">${esc(company.address)}</div>` : ""}
+          </div>
+        </div>
+        <div style="text-align:left;">
+          <div style="font-size:16px;font-weight:800;">كشف حساب</div>
+          <div style="font-size:10.5px;opacity:.9;">Statement of Account</div>
+          <div style="font-size:10.5px;opacity:.9;margin-top:3px;">التاريخ: ${dmy(new Date())}</div>
+        </div>
+      </div>
+
+      <!-- Customer box -->
+      <div style="margin-top:12px;background:${C.primarySoft};border:1px solid ${C.primary};border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:10.5px;color:${C.muted};">العميل</div>
+          <div style="font-size:14px;font-weight:800;">${esc(personName)}</div>
+        </div>
+        ${phone ? `<div style="text-align:left;">
+          <div style="font-size:10.5px;color:${C.muted};">رقم الهاتف</div>
+          <div style="font-size:13px;font-weight:700;direction:ltr;">${esc(phone)}</div>
+        </div>` : ""}
+      </div>
+
+      ${periodLabel ? `<div style="margin-top:8px;font-size:10.5px;color:${C.muted};font-style:italic;">${periodLabel}</div>` : ""}
+
+      <!-- KPIs -->
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="border:1px solid ${C.border};background:${C.accentSoft};border-radius:6px;padding:8px 10px;">
+          <div style="font-size:10px;color:${C.muted};">إجمالي الدائن (${esc(baseSym)})</div>
+          <div style="font-size:14px;font-weight:800;color:${C.accent};margin-top:2px;">${fmt(totalCredit)}</div>
+        </div>
+        <div style="border:1px solid ${C.border};background:${C.dangerSoft};border-radius:6px;padding:8px 10px;">
+          <div style="font-size:10px;color:${C.muted};">إجمالي المدين (${esc(baseSym)})</div>
+          <div style="font-size:14px;font-weight:800;color:${C.danger};margin-top:2px;">${fmt(totalDebit)}</div>
+        </div>
+        <div style="border:1px solid ${C.border};background:${C.primarySoft};border-radius:6px;padding:8px 10px;">
+          <div style="font-size:10px;color:${C.muted};">عدد المعاملات</div>
+          <div style="font-size:14px;font-weight:800;color:${C.primary};margin-top:2px;">${fmtInt(filteredTxs.length)}</div>
+        </div>
+      </div>
+
+      ${sections || `<div style="margin-top:20px;padding:24px;text-align:center;color:${C.muted};border:1px dashed ${C.border};border-radius:6px;">لا توجد معاملات ضمن الفترة المحددة</div>`}
+
+      ${company?.notes ? `
+        <div style="margin-top:14px;padding:10px 12px;border:1px solid ${C.border};border-radius:6px;background:${C.bgAlt};">
+          <div style="font-size:10.5px;color:${C.muted};font-weight:700;margin-bottom:4px;">ملاحظات</div>
+          <div style="font-size:11px;white-space:pre-wrap;">${esc(company.notes)}</div>
+        </div>` : ""}
+
+      <div style="margin-top:18px;border-top:1px solid ${C.border};padding-top:8px;display:flex;justify-content:space-between;color:${C.muted};font-size:10px;">
+        <div>تم إنشاء هذا الكشف بواسطة دفترك  •  Daftarak</div>
+        <div>${new Date().toLocaleString("ar-EG")}</div>
+      </div>
+    </div>`;
+
+  // Mount offscreen
+  const host = document.createElement("div");
+  host.style.cssText = "position:fixed;inset:auto auto 0 -10000px;width:794px;z-index:-1;pointer-events:none;opacity:0;";
+  host.innerHTML = html;
+  document.body.appendChild(host);
+
+  try {
+    // Wait one paint so fonts + images apply
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    await new Promise((r) => setTimeout(r, 50));
+
+    const node = host.firstElementChild as HTMLElement;
+    const canvas = await html2canvas(node, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      logging: false,
+      windowWidth: 794,
+    });
+
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+    const pageW = pdf.internal.pageSize.getWidth();   // 210
+    const pageH = pdf.internal.pageSize.getHeight();  // 297
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    if (imgH <= pageH) {
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, imgW, imgH, undefined, "FAST");
+    } else {
+      // Slice the bitmap per page to avoid huge negative-offset rendering blur
+      const pxPerMm = canvas.width / pageW;
+      const pageHpx = Math.floor(pageH * pxPerMm);
+      let y = 0;
+      let first = true;
+      while (y < canvas.height) {
+        const sliceH = Math.min(pageHpx, canvas.height - y);
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width;
+        slice.height = sliceH;
+        const ctx = slice.getContext("2d");
+        if (!ctx) break;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, slice.width, slice.height);
+        ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        const sliceImgH = (sliceH * imgW) / canvas.width;
+        if (!first) pdf.addPage();
+        pdf.addImage(slice.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, imgW, sliceImgH, undefined, "FAST");
+        first = false;
+        y += sliceH;
+      }
+    }
+
+    // Footer page numbers (Latin glyphs render via built-in fonts safely)
+    const pageCount = (pdf as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+    for (let p = 1; p <= pageCount; p++) {
+      pdf.setPage(p);
+      pdf.setFontSize(8);
+      pdf.setTextColor(120);
+      pdf.text(`Page ${p} / ${pageCount}`, pageW - 10, pageH - 5, { align: "right" });
+    }
+
+    pdf.save(`statement-${personName}-${Date.now()}.pdf`);
+  } finally {
+    document.body.removeChild(host);
   }
-
-  // Notes
-  if (company?.notes) {
-    if (y > 265) { doc.addPage(); y = 20; }
-    doc.setTextColor(...C_MUTED); doc.setFontSize(8); doc.setFont("helvetica", "italic");
-    doc.text("Notes / ملاحظات:", 12, y); y += 4;
-    const lines = doc.splitTextToSize(company.notes, pageW - 24);
-    doc.text(lines, 12, y);
-  }
-
-  // Footer for all pages
-  const pageCount = (doc as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
-  for (let p = 1; p <= pageCount; p++) {
-    doc.setPage(p);
-    doc.setDrawColor(...C_BORDER); doc.setLineWidth(0.2);
-    doc.line(12, 285, pageW - 12, 285);
-    doc.setTextColor(...C_MUTED); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
-    doc.text("Generated by Daftarak  •  دفترك", 12, 290);
-    doc.text(`Page ${p} / ${pageCount}`, pageW - 12, 290, { align: "right" });
-  }
-
-  doc.save(`statement-${personName}-${Date.now()}.pdf`);
 }
