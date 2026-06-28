@@ -13,7 +13,7 @@ import { FabButton } from "@/components/common/FabButton";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MonthlyExpenseHeader } from "@/features/expenses/MonthlyExpenseHeader";
 import { CategoryBreakdown } from "@/features/expenses/CategoryBreakdown";
-import { ExpenseRow } from "@/features/expenses/ExpenseRow";
+import { ExpensesTable } from "@/features/expenses/ExpensesTable";
 
 export const Route = createFileRoute("/app/expenses")({ component: ExpensesPage });
 
@@ -135,18 +135,13 @@ function ExpensesPage() {
           variant="compact"
         />
       ) : (
-        <div className="space-y-2">
-          {filtered.map((e) => (
-            <ExpenseRow
-              key={e.id}
-              expense={e}
-              category={categories.find((c) => c.id === e.category_id)}
-              currency={currencies.find((c) => c.id === e.currency_id)}
-              onEdit={() => { setEditing(e); setOpen(true); }}
-              onDelete={() => setDelTarget(e.id)}
-            />
-          ))}
-        </div>
+        <ExpensesTable
+          expenses={filtered}
+          categories={categories}
+          currencies={currencies}
+          onEdit={(e) => { setEditing(e); setOpen(true); }}
+          onDelete={(id) => setDelTarget(id)}
+        />
       )}
 
       <FabButton onClick={() => { setEditing(null); setOpen(true); }} label="إضافة مصروف" />

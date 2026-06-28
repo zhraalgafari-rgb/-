@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { TransactionRow } from "@/features/debts/TransactionRow";
+import { TransactionTable } from "@/features/debts/TransactionTable";
 import { fmtMonthAr } from "@/lib/format";
 
 interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
@@ -30,25 +30,22 @@ export function PersonTimeline({ txs, currencies, running, onEdit, onDelete, onT
   }, [txs]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {grouped.map((g) => (
-        <div key={g.key} className="space-y-2">
+        <div key={g.key} className="space-y-1.5">
           <div className="flex items-center gap-2 px-1">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-[11px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{g.label}</span>
+            <span className="text-[11px] font-bold text-primary bg-primary/10 ring-1 ring-primary/20 px-2 py-0.5 rounded-full">{g.label}</span>
             <div className="h-px flex-1 bg-border" />
           </div>
-          {g.items.map((t) => (
-            <TransactionRow
-              key={t.id}
-              tx={t}
-              currency={currencies.find((c) => c.id === t.currency_id)}
-              runningBalance={running[t.id] ?? 0}
-              onEdit={() => onEdit(t)}
-              onDelete={() => onDelete(t.id)}
-              onTogglePaid={() => onTogglePaid(t)}
-            />
-          ))}
+          <TransactionTable
+            txs={g.items}
+            currencies={currencies}
+            running={running}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onTogglePaid={onTogglePaid}
+          />
         </div>
       ))}
     </div>
