@@ -33,6 +33,7 @@ function OpeningBalancesPage() {
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const load = async () => {
     if (!user) return;
