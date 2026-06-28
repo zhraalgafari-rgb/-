@@ -15,9 +15,10 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { exportPersonStatementPDF } from "@/lib/io/exportPdf";
 import { exportPersonToExcel } from "@/lib/io/exportExcel";
 import { PersonActionsBar } from "@/features/debts/person/PersonActionsBar";
-import { PersonBalanceCard } from "@/features/debts/person/PersonBalanceCard";
+import { PersonBalancesByCurrency } from "@/features/debts/person/PersonBalancesByCurrency";
 import { PersonTimeline } from "@/features/debts/person/PersonTimeline";
 import { AiReminderDialog } from "@/components/ai/AiReminderDialog";
+import { computeBalancesByCurrency, computeRunningByCurrency, type OpeningBalance } from "@/lib/money/balances";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
