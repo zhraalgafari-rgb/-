@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+
 import { Loader2, Upload, Sparkles, CheckCircle2, AlertTriangle, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
