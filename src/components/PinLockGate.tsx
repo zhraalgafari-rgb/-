@@ -157,6 +157,13 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
         </button>
       </div>
 
+      {bioOn && (
+        <button onClick={tryBiometric} disabled={wait > 0}
+          className="mt-6 inline-flex items-center gap-2 text-sm bg-white/15 hover:bg-white/25 active:scale-95 transition-all px-4 py-2 rounded-xl disabled:opacity-40">
+          <Fingerprint className="size-4" /> فتح بالبصمة
+        </button>
+      )}
+
       <button onClick={forgotPin} className="mt-8 inline-flex items-center gap-2 text-sm text-white/80 hover:text-white">
         <LogOut className="size-4" /> نسيت الرمز؟ تسجيل خروج
       </button>
