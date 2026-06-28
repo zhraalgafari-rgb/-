@@ -177,7 +177,7 @@ function PersonPage() {
         onDelete={() => setConfirmDelPerson(true)}
       />
 
-      <PersonBalancesByCurrency name={name} phone={phone} balances={balancesByCurrency} totalTxCount={txs.length} />
+      <PersonBalancesByCurrency name={name} phone={phone} balances={balancesByCurrency} totalTxCount={txs.length} txs={txs} />
 
       {/* Tabs */}
       <div className="grid grid-cols-3 gap-1 rounded-xl bg-secondary/60 p-1 ring-1 ring-border">
