@@ -120,6 +120,8 @@ function DebtsHome() {
         onFilterChange={setFilter}
       />
 
+      <MultiCurrencyTotals txs={txs} currencies={currencies} />
+
       <div className="flex items-center gap-2">
         <div className="flex-1"><SearchBar value={q} onChange={setQ} placeholder="ابحث عن شخص..." /></div>
         <select
