@@ -18,6 +18,9 @@ function AppLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [pending, setPending] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const { theme, set: setTheme } = useTheme();
+  const isDark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
