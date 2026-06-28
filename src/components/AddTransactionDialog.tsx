@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/AmountInput";
 import { evalExpr } from "@/lib/calc";
+import { AttachmentsManager } from "@/components/AttachmentsManager";
 
 interface Person { id: string; name: string }
 interface Currency { id: string; name: string; is_base: boolean; rate?: number }
@@ -223,6 +224,12 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
               <TrendingDown className="size-4" /> عليه (مدين)
             </label>
           </RadioGroup>
+
+          {editing && (
+            <div className="pt-2 border-t">
+              <AttachmentsManager entityType="transaction" entityId={editing.id} />
+            </div>
+          )}
 
           <Button onClick={submit} disabled={busy} className="w-full bg-gradient-primary text-primary-foreground shadow-glow">
             {busy ? "..." : editing ? "حفظ التعديلات" : "حفظ المعاملة"}
