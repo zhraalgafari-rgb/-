@@ -33,7 +33,7 @@ function dueState(due: string | null | undefined, is_paid?: boolean): "none" | "
   return "none";
 }
 
-export function TransactionTable({ txs, currencies, running, onEdit, onDelete, onTogglePaid }: Props) {
+export function TransactionTable<T extends Tx>({ txs, currencies, running, onEdit, onDelete, onTogglePaid }: Props<T>) {
   return (
     <div className="rounded-xl border-2 border-border bg-card shadow-card overflow-hidden">
       <div className="overflow-x-auto">
