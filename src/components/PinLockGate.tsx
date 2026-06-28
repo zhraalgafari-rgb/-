@@ -5,7 +5,8 @@ import {
   hashPin, isUnlocked, markUnlocked, markLocked,
   getLockRemaining, setLockedUntil, clearLockTimer,
 } from "@/lib/pin";
-import { Lock, Delete, LogOut } from "lucide-react";
+import { biometricEnabled, verifyBiometric } from "@/lib/biometric";
+import { Lock, Delete, LogOut, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
 
 const AUTOLOCK_KEY = "daftarak.autolock.minutes";
