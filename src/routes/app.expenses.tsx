@@ -13,7 +13,7 @@ import { FabButton } from "@/components/common/FabButton";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MonthlyExpenseHeader } from "@/features/expenses/MonthlyExpenseHeader";
 import { CategoryBreakdown } from "@/features/expenses/CategoryBreakdown";
-import { ExpenseRow } from "@/features/expenses/ExpenseRow";
+import { ExpensesTable } from "@/features/expenses/ExpensesTable";
 
 export const Route = createFileRoute("/app/expenses")({ component: ExpensesPage });
 
