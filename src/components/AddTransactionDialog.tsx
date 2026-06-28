@@ -60,6 +60,8 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
   const [date, setDate] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
