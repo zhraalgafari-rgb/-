@@ -2,10 +2,12 @@ import { createFileRoute, Outlet, useNavigate, Link } from "@tanstack/react-rout
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Wallet, Loader2, Bell, Search } from "lucide-react";
+import { Wallet, Loader2, Bell, Search, Moon, Sun } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { ModuleTabs } from "@/components/common/ModuleTabs";
 import { BadgeCount } from "@/components/common/BadgeCount";
+import { GlobalSearchDialog } from "@/components/GlobalSearchDialog";
+import { useTheme } from "@/lib/theme";
 import { fetchPending, pollAndNotify } from "@/lib/notifications";
 import { maybeRunAutoBackup } from "@/lib/backup";
 import { syncRemindersFromTransactions } from "@/lib/reminders";
