@@ -5,7 +5,8 @@ import {
   hashPin, isUnlocked, markUnlocked, markLocked,
   getLockRemaining, setLockedUntil, clearLockTimer,
 } from "@/lib/pin";
-import { Lock, Delete, LogOut } from "lucide-react";
+import { biometricEnabled, verifyBiometric } from "@/lib/biometric";
+import { Lock, Delete, LogOut, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
 
 const AUTOLOCK_KEY = "daftarak.autolock.minutes";
@@ -71,6 +72,15 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
     return () => clearInterval(t);
   }, [unlocked]);
 
+  // Auto-prompt biometric on lock screen show
+  useEffect(() => {
+    if (checking || unlocked || !pinHash) return;
+    if (!biometricEnabled()) return;
+    const id = setTimeout(() => { void tryBiometric(); }, 300);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checking, unlocked, pinHash]);
+
   if (checking || unlocked || !pinHash || !user) return <>{children}</>;
 
   const press = (d: string) => {
@@ -113,6 +123,21 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
     await signOut();
   };
 
+  const tryBiometric = async () => {
+    if (waitMs > 0) return;
+    const ok = await verifyBiometric();
+    if (ok) {
+      markUnlocked();
+      clearLockTimer();
+      try { sessionStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); } catch { /* ignore */ }
+      setUnlocked(true);
+    } else {
+      toast.error("فشل التحقق بالبصمة");
+    }
+  };
+
+  const bioOn = biometricEnabled();
+
   return (
     <div className="fixed inset-0 z-[100] bg-gradient-hero flex flex-col items-center justify-center text-white p-6">
       <div className="size-16 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center mb-4 shadow-glow">
@@ -140,6 +165,13 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
           <Delete className="size-5" />
         </button>
       </div>
+
+      {bioOn && (
+        <button onClick={tryBiometric} disabled={wait > 0}
+          className="mt-6 inline-flex items-center gap-2 text-sm bg-white/15 hover:bg-white/25 active:scale-95 transition-all px-4 py-2 rounded-xl disabled:opacity-40">
+          <Fingerprint className="size-4" /> فتح بالبصمة
+        </button>
+      )}
 
       <button onClick={forgotPin} className="mt-8 inline-flex items-center gap-2 text-sm text-white/80 hover:text-white">
         <LogOut className="size-4" /> نسيت الرمز؟ تسجيل خروج

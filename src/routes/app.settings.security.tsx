@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { hashPin } from "@/lib/pin";
-import { Lock, ShieldCheck } from "lucide-react";
+import { biometricAvailable, biometricEnabled, registerBiometric, disableBiometric, verifyBiometric } from "@/lib/biometric";
+import { Lock, ShieldCheck, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/settings/security")({ component: SecurityPage });
@@ -24,6 +25,7 @@ function SecurityPage() {
   const [pin2, setPin2] = useState("");
   const [autolock, setAutolock] = useState<number>(5);
   const [biometric, setBiometric] = useState(false);
+  const [bioSupported, setBioSupported] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -36,8 +38,9 @@ function SecurityPage() {
     try {
       const v = Number(localStorage.getItem(AUTOLOCK_KEY) ?? "5");
       setAutolock(isNaN(v) ? 5 : v);
-      setBiometric(localStorage.getItem("daftarak.biometric") === "1");
+      setBiometric(biometricEnabled());
     } catch {}
+    biometricAvailable().then(setBioSupported);
   }, [user]);
 
   const setPinCode = async () => {
@@ -66,10 +69,29 @@ function SecurityPage() {
     try { localStorage.setItem(AUTOLOCK_KEY, String(v)); } catch {}
   };
 
-  const toggleBio = (v: boolean) => {
-    setBiometric(v);
-    try { localStorage.setItem("daftarak.biometric", v ? "1" : "0"); } catch {}
-    if (v) toast.info("سيتم استخدام البصمة عند توفرها");
+  const toggleBio = async (v: boolean) => {
+    if (!user) return;
+    if (!v) {
+      disableBiometric();
+      setBiometric(false);
+      toast.success("تم تعطيل البصمة");
+      return;
+    }
+    if (!hasPin) return toast.error("فعّل القفل برقم سري أولاً");
+    if (!bioSupported) return toast.error("جهازك لا يدعم البصمة");
+    try {
+      await registerBiometric(user.id, user.email ?? "Daftarak");
+      setBiometric(true);
+      toast.success("تم تفعيل البصمة");
+    } catch (e) {
+      toast.error("تعذّر تسجيل البصمة");
+      setBiometric(false);
+    }
+  };
+
+  const testBio = async () => {
+    const ok = await verifyBiometric();
+    toast[ok ? "success" : "error"](ok ? "تم التحقق بنجاح" : "فشل التحقق");
   };
 
   return (
@@ -115,20 +137,24 @@ function SecurityPage() {
         </Card>
       )}
 
-      <Card className="p-2.5 flex items-center justify-between gap-2 opacity-70">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="size-8 rounded-lg bg-secondary text-muted-foreground flex items-center justify-center ring-1 ring-border shrink-0">
-            <ShieldCheck className="size-3.5" />
-          </div>
-          <div className="min-w-0">
-            <div className="font-semibold text-[12px] leading-tight flex items-center gap-1.5">
-              البصمة
-              <span className="text-[9px] font-bold bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full">قريباً</span>
+      <Card className={`p-2.5 space-y-2 ${!hasPin || !bioSupported ? "opacity-70" : ""}`}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="size-8 rounded-lg bg-secondary text-primary flex items-center justify-center ring-1 ring-border shrink-0">
+              <Fingerprint className="size-3.5" />
             </div>
-            <div className="text-[10px] text-muted-foreground truncate">سيتم دعم البصمة عبر WebAuthn قريباً</div>
+            <div className="min-w-0">
+              <div className="font-semibold text-[12px] leading-tight">البصمة / Face ID</div>
+              <div className="text-[10px] text-muted-foreground truncate">
+                {!bioSupported ? "غير مدعومة على هذا الجهاز" : !hasPin ? "يتطلب تفعيل الرقم السري" : biometric ? "مفعّلة" : "غير مفعّلة"}
+              </div>
+            </div>
           </div>
+          <Switch checked={biometric} onCheckedChange={toggleBio} disabled={!bioSupported || !hasPin} />
         </div>
-        <Switch checked={false} disabled />
+        {biometric && (
+          <Button size="sm" variant="outline" onClick={testBio} className="w-full h-8 text-[11px]">اختبار البصمة</Button>
+        )}
       </Card>
 
       <ConfirmDialog
