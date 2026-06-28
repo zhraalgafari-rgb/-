@@ -12,6 +12,7 @@ import { processDueRecurring } from "@/lib/recurring";
 import { SearchBar } from "@/components/common/SearchBar";
 import { FabButton } from "@/components/common/FabButton";
 import { DebtsHeader } from "@/features/debts/DebtsHeader";
+import { MultiCurrencyTotals } from "@/features/debts/MultiCurrencyTotals";
 import { PersonRow } from "@/features/debts/PersonRow";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
