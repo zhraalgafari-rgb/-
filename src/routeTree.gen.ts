@@ -32,6 +32,7 @@ import { Route as AppSettingsSecurityRouteImport } from './routes/app.settings.s
 import { Route as AppSettingsProfileRouteImport } from './routes/app.settings.profile'
 import { Route as AppSettingsNotificationsRouteImport } from './routes/app.settings.notifications'
 import { Route as AppSettingsDataRouteImport } from './routes/app.settings.data'
+import { Route as AppSettingsCompanyRouteImport } from './routes/app.settings.company'
 import { Route as AppSettingsAppearanceRouteImport } from './routes/app.settings.appearance'
 import { Route as AppSettingsAboutRouteImport } from './routes/app.settings.about'
 import { Route as AppPersonIdRouteImport } from './routes/app.person.$id'
@@ -152,6 +153,11 @@ const AppSettingsDataRoute = AppSettingsDataRouteImport.update({
   path: '/data',
   getParentRoute: () => AppSettingsRoute,
 } as any)
+const AppSettingsCompanyRoute = AppSettingsCompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const AppSettingsAppearanceRoute = AppSettingsAppearanceRouteImport.update({
   id: '/appearance',
   path: '/appearance',
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/app/person/$id': typeof AppPersonIdRoute
   '/app/settings/about': typeof AppSettingsAboutRoute
   '/app/settings/appearance': typeof AppSettingsAppearanceRoute
+  '/app/settings/company': typeof AppSettingsCompanyRoute
   '/app/settings/data': typeof AppSettingsDataRoute
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/profile': typeof AppSettingsProfileRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/app/person/$id': typeof AppPersonIdRoute
   '/app/settings/about': typeof AppSettingsAboutRoute
   '/app/settings/appearance': typeof AppSettingsAppearanceRoute
+  '/app/settings/company': typeof AppSettingsCompanyRoute
   '/app/settings/data': typeof AppSettingsDataRoute
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/profile': typeof AppSettingsProfileRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/app/person/$id': typeof AppPersonIdRoute
   '/app/settings/about': typeof AppSettingsAboutRoute
   '/app/settings/appearance': typeof AppSettingsAppearanceRoute
+  '/app/settings/company': typeof AppSettingsCompanyRoute
   '/app/settings/data': typeof AppSettingsDataRoute
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/profile': typeof AppSettingsProfileRoute
@@ -277,6 +286,7 @@ export interface FileRouteTypes {
     | '/app/person/$id'
     | '/app/settings/about'
     | '/app/settings/appearance'
+    | '/app/settings/company'
     | '/app/settings/data'
     | '/app/settings/notifications'
     | '/app/settings/profile'
@@ -304,6 +314,7 @@ export interface FileRouteTypes {
     | '/app/person/$id'
     | '/app/settings/about'
     | '/app/settings/appearance'
+    | '/app/settings/company'
     | '/app/settings/data'
     | '/app/settings/notifications'
     | '/app/settings/profile'
@@ -332,6 +343,7 @@ export interface FileRouteTypes {
     | '/app/person/$id'
     | '/app/settings/about'
     | '/app/settings/appearance'
+    | '/app/settings/company'
     | '/app/settings/data'
     | '/app/settings/notifications'
     | '/app/settings/profile'
@@ -507,6 +519,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsDataRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    '/app/settings/company': {
+      id: '/app/settings/company'
+      path: '/company'
+      fullPath: '/app/settings/company'
+      preLoaderRoute: typeof AppSettingsCompanyRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     '/app/settings/appearance': {
       id: '/app/settings/appearance'
       path: '/appearance'
@@ -534,6 +553,7 @@ declare module '@tanstack/react-router' {
 interface AppSettingsRouteChildren {
   AppSettingsAboutRoute: typeof AppSettingsAboutRoute
   AppSettingsAppearanceRoute: typeof AppSettingsAppearanceRoute
+  AppSettingsCompanyRoute: typeof AppSettingsCompanyRoute
   AppSettingsDataRoute: typeof AppSettingsDataRoute
   AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
   AppSettingsProfileRoute: typeof AppSettingsProfileRoute
@@ -543,6 +563,7 @@ interface AppSettingsRouteChildren {
 const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsAboutRoute: AppSettingsAboutRoute,
   AppSettingsAppearanceRoute: AppSettingsAppearanceRoute,
+  AppSettingsCompanyRoute: AppSettingsCompanyRoute,
   AppSettingsDataRoute: AppSettingsDataRoute,
   AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
   AppSettingsProfileRoute: AppSettingsProfileRoute,
