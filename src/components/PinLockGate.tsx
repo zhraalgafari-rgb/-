@@ -72,6 +72,15 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
     return () => clearInterval(t);
   }, [unlocked]);
 
+  // Auto-prompt biometric on lock screen show
+  useEffect(() => {
+    if (checking || unlocked || !pinHash) return;
+    if (!biometricEnabled()) return;
+    const id = setTimeout(() => { void tryBiometric(); }, 300);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checking, unlocked, pinHash]);
+
   if (checking || unlocked || !pinHash || !user) return <>{children}</>;
 
   const press = (d: string) => {
