@@ -3,9 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
-import { Sparkles, ArrowRight, TrendingUp, TrendingDown, AlertCircle, Trophy, Calendar, Target } from "lucide-react";
+import { Sparkles, ArrowRight, TrendingUp, TrendingDown, AlertCircle, Trophy, Calendar } from "lucide-react";
 import { fmtMoney, fmtMonthAr, monthRange } from "@/lib/format";
 import { CardSkeleton } from "@/components/Skeleton";
+import { KpiCard } from "@/features/insights/KpiCard";
+import { SpendingHeatmap } from "@/features/insights/SpendingHeatmap";
+import { BudgetSnapshot } from "@/features/insights/BudgetSnapshot";
 
 export const Route = createFileRoute("/app/insights")({ component: InsightsPage });
 
@@ -57,32 +60,26 @@ function InsightsPage() {
     const projected = avgDaily * new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
     const change = totLast > 0 ? ((tot - totLast) / totLast) * 100 : 0;
 
-    // Top category
     const byCat = new Map<string, number>();
     for (const e of thisMonth) {
       const k = e.category_id ?? "_";
       byCat.set(k, (byCat.get(k) ?? 0) + toBase(e.amount, e.currency_id));
     }
     const sorted = Array.from(byCat.entries()).sort((a, b) => b[1] - a[1]);
-    const topCatId = sorted[0]?.[0];
-    const topCat = cats.find((c) => c.id === topCatId);
+    const topCat = cats.find((c) => c.id === sorted[0]?.[0]);
     const topVal = sorted[0]?.[1] ?? 0;
 
-    // Top day this month
     const byDay = new Map<number, number>();
     for (const e of thisMonth) {
       const d = new Date(e.expense_date).getDate();
       byDay.set(d, (byDay.get(d) ?? 0) + toBase(e.amount, e.currency_id));
     }
     const topDay = Array.from(byDay.entries()).sort((a, b) => b[1] - a[1])[0];
-
     const totalBudget = budgets.reduce((s, b) => s + toBase(b.amount, b.currency_id), 0);
-    const budgetRemaining = totalBudget - tot;
 
-    return { tot, totLast, change, avgDaily, projected, topCat, topVal, topDay, totalBudget, budgetRemaining };
+    return { tot, totLast, change, avgDaily, projected, topCat, topVal, topDay, totalBudget };
   }, [thisMonth, lastMonth, cats, curs, budgets]);
 
-  // Heatmap of days
   const days = useMemo(() => {
     const map = new Map<number, number>();
     let max = 0;
@@ -122,7 +119,6 @@ function InsightsPage() {
         </div>
       </div>
 
-      {/* Hero comparison */}
       <Card className="p-4">
         <div className="text-xs text-muted-foreground mb-1">إجمالي الإنفاق</div>
         <div className="flex items-end justify-between">
@@ -142,83 +138,19 @@ function InsightsPage() {
         </div>
       </Card>
 
-      {/* KPI grid */}
       <div className="grid grid-cols-2 gap-2">
-        <KPI icon={Calendar} label="متوسط يومي" value={fmtMoney(stats.avgDaily)} sub={base?.name} />
-        <KPI icon={TrendingUp} label="توقّع نهاية الشهر" value={fmtMoney(stats.projected)} sub={base?.name} />
+        <KpiCard icon={Calendar} label="متوسط يومي" value={fmtMoney(stats.avgDaily)} sub={base?.name} />
+        <KpiCard icon={TrendingUp} label="توقّع نهاية الشهر" value={fmtMoney(stats.projected)} sub={base?.name} />
         {stats.topCat && (
-          <KPI icon={Trophy} label="الأعلى تصنيفاً" value={stats.topCat.name} sub={`${fmtMoney(stats.topVal)} ${base?.name}`} accent={stats.topCat.color} />
+          <KpiCard icon={Trophy} label="الأعلى تصنيفاً" value={stats.topCat.name} sub={`${fmtMoney(stats.topVal)} ${base?.name}`} accent={stats.topCat.color} />
         )}
         {stats.topDay && (
-          <KPI icon={AlertCircle} label="أكبر يوم إنفاق" value={`يوم ${stats.topDay[0]}`} sub={`${fmtMoney(stats.topDay[1])} ${base?.name}`} />
+          <KpiCard icon={AlertCircle} label="أكبر يوم إنفاق" value={`يوم ${stats.topDay[0]}`} sub={`${fmtMoney(stats.topDay[1])} ${base?.name}`} />
         )}
       </div>
 
-      {/* Budget snapshot */}
-      {stats.totalBudget > 0 && (
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Target className="size-4 text-primary" />
-            <h3 className="font-semibold text-sm">حالة الميزانية</h3>
-          </div>
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-muted-foreground">متبقّي</span>
-            <span className={`font-bold tabular-nums ${stats.budgetRemaining < 0 ? "text-danger" : "text-success"}`}>
-              {fmtMoney(stats.budgetRemaining)} {base?.name}
-            </span>
-          </div>
-          <div className="h-2 bg-secondary rounded-full overflow-hidden">
-            <div
-              className={`h-full transition-all ${stats.tot > stats.totalBudget ? "bg-danger" : "bg-gradient-primary"}`}
-              style={{ width: `${Math.min(100, (stats.tot / stats.totalBudget) * 100)}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-[11px] text-muted-foreground mt-1.5">
-            <span>{fmtMoney(stats.tot)}</span>
-            <span>{fmtMoney(stats.totalBudget)}</span>
-          </div>
-        </Card>
-      )}
-
-      {/* Heatmap */}
-      {days.max > 0 && (
-        <Card className="p-4">
-          <h3 className="font-semibold text-sm mb-3">خريطة الإنفاق اليومي</h3>
-          <div className="grid grid-cols-7 gap-1">
-            {Array.from({ length: days.total }).map((_, i) => {
-              const d = i + 1;
-              const v = days.map.get(d) ?? 0;
-              const intensity = days.max > 0 ? v / days.max : 0;
-              return (
-                <div
-                  key={d}
-                  title={v > 0 ? `يوم ${d}: ${fmtMoney(v)}` : `يوم ${d}: لا إنفاق`}
-                  className="aspect-square rounded-md flex items-center justify-center text-[10px] font-medium border"
-                  style={{
-                    background: v > 0 ? `color-mix(in oklab, var(--primary) ${Math.round(intensity * 80) + 10}%, transparent)` : "transparent",
-                    color: intensity > 0.5 ? "var(--primary-foreground)" : "var(--muted-foreground)",
-                  }}
-                >
-                  {d}
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
+      <BudgetSnapshot total={stats.totalBudget} spent={stats.tot} baseName={base?.name} />
+      <SpendingHeatmap map={days.map} max={days.max} total={days.total} />
     </div>
-  );
-}
-
-function KPI({ icon: Icon, label, value, sub, accent }: { icon: typeof Sparkles; label: string; value: string; sub?: string; accent?: string }) {
-  return (
-    <Card className="p-3">
-      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-        <Icon className="size-3.5" style={accent ? { color: accent } : undefined} />
-        {label}
-      </div>
-      <div className="font-bold text-sm truncate">{value}</div>
-      {sub && <div className="text-[10px] text-muted-foreground tabular-nums">{sub}</div>}
-    </Card>
   );
 }
