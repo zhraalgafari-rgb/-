@@ -33,6 +33,7 @@ export function PersonTable({ rows, onEdit, onArchive, onDelete }: Props) {
               <th className="text-left">عليه</th>
               <th className="text-left">الصافي</th>
               <th className="text-center hidden xs:table-cell">آخر دفعة</th>
+              {hasActions && <th className="text-center w-10">إجراء</th>}
             </tr>
           </thead>
           <tbody>
@@ -91,12 +92,21 @@ export function PersonTable({ rows, onEdit, onArchive, onDelete }: Props) {
                   <td className="px-2 py-1.5 text-center hidden xs:table-cell text-muted-foreground tabular-nums">
                     {balance.lastDate ? fmtDate(new Date(balance.lastDate).toISOString()) : "—"}
                   </td>
+                  {hasActions && (
+                    <td className="px-1 py-1 text-center">
+                      <RowActions
+                        onEdit={onEdit ? () => onEdit(person) : undefined}
+                        onArchive={onArchive ? () => onArchive(person) : undefined}
+                        onDelete={onDelete ? () => onDelete(person) : undefined}
+                      />
+                    </td>
+                  )}
                 </tr>
               );
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="text-center py-4 text-muted-foreground text-[10px]">
+                <td colSpan={hasActions ? 9 : 8} className="text-center py-4 text-muted-foreground text-[10px]">
                   لا توجد بيانات
                 </td>
               </tr>
