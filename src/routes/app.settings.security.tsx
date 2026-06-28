@@ -69,10 +69,29 @@ function SecurityPage() {
     try { localStorage.setItem(AUTOLOCK_KEY, String(v)); } catch {}
   };
 
-  const toggleBio = (v: boolean) => {
-    setBiometric(v);
-    try { localStorage.setItem("daftarak.biometric", v ? "1" : "0"); } catch {}
-    if (v) toast.info("سيتم استخدام البصمة عند توفرها");
+  const toggleBio = async (v: boolean) => {
+    if (!user) return;
+    if (!v) {
+      disableBiometric();
+      setBiometric(false);
+      toast.success("تم تعطيل البصمة");
+      return;
+    }
+    if (!hasPin) return toast.error("فعّل القفل برقم سري أولاً");
+    if (!bioSupported) return toast.error("جهازك لا يدعم البصمة");
+    try {
+      await registerBiometric(user.id, user.email ?? "Daftarak");
+      setBiometric(true);
+      toast.success("تم تفعيل البصمة");
+    } catch (e) {
+      toast.error("تعذّر تسجيل البصمة");
+      setBiometric(false);
+    }
+  };
+
+  const testBio = async () => {
+    const ok = await verifyBiometric();
+    toast[ok ? "success" : "error"](ok ? "تم التحقق بنجاح" : "فشل التحقق");
   };
 
   return (
