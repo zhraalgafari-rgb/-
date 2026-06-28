@@ -46,7 +46,7 @@ function severityFor(days: number, amount: number, limit: number | null): Bucket
 
 const severityMeta: Record<Bucket["severity"], { label: string; cls: string; ring: string }> = {
   ok: { label: "ضمن المهلة", cls: "bg-success-soft text-success", ring: "ring-success/30" },
-  soon: { label: "قريباً", cls: "bg-warning-soft text-warning", ring: "ring-warning/30" },
+  soon: { label: "قريباً", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300", ring: "ring-amber-400/40" },
   late: { label: "متأخر", cls: "bg-danger-soft text-danger", ring: "ring-danger/30" },
   critical: { label: "حرج", cls: "bg-danger text-danger-foreground", ring: "ring-danger/50" },
 };
@@ -199,7 +199,7 @@ function FollowupPage() {
             all: { label: "الكل", cls: "bg-primary text-primary-foreground" },
             critical: { label: "حرج", cls: "bg-danger text-danger-foreground" },
             late: { label: "متأخر", cls: "bg-danger-soft text-danger" },
-            soon: { label: "قريب", cls: "bg-warning-soft text-warning" },
+            soon: { label: "قريب", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
           };
           return (
             <button
