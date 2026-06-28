@@ -16,34 +16,46 @@ export type Database = {
     Tables: {
       attachments: {
         Row: {
+          amount: number | null
+          category: string | null
           created_at: string
+          doc_date: string | null
           entity_id: string
           entity_type: string
           file_name: string
           id: string
           mime_type: string | null
+          note: string | null
           size_bytes: number | null
           storage_path: string
           user_id: string
         }
         Insert: {
+          amount?: number | null
+          category?: string | null
           created_at?: string
+          doc_date?: string | null
           entity_id: string
           entity_type: string
           file_name: string
           id?: string
           mime_type?: string | null
+          note?: string | null
           size_bytes?: number | null
           storage_path: string
           user_id: string
         }
         Update: {
+          amount?: number | null
+          category?: string | null
           created_at?: string
+          doc_date?: string | null
           entity_id?: string
           entity_type?: string
           file_name?: string
           id?: string
           mime_type?: string | null
+          note?: string | null
           size_bytes?: number | null
           storage_path?: string
           user_id?: string
