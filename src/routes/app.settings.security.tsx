@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { hashPin } from "@/lib/pin";
-import { Lock, ShieldCheck } from "lucide-react";
+import { biometricAvailable, biometricEnabled, registerBiometric, disableBiometric, verifyBiometric } from "@/lib/biometric";
+import { Lock, ShieldCheck, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/settings/security")({ component: SecurityPage });
