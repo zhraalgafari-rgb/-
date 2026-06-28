@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      attachments: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -101,6 +137,45 @@ export type Database = {
         }
         Relationships: []
       }
+      company_profile: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          logo_path: string | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          tax_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          logo_path?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          logo_path?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       currencies: {
         Row: {
           created_at: string
@@ -130,6 +205,85 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      customer_ratings: {
+        Row: {
+          computed_at: string
+          id: string
+          person_id: string
+          rating: string
+          reason: string | null
+          score: number
+          user_id: string
+        }
+        Insert: {
+          computed_at?: string
+          id?: string
+          person_id: string
+          rating: string
+          reason?: string | null
+          score: number
+          user_id: string
+        }
+        Update: {
+          computed_at?: string
+          id?: string
+          person_id?: string
+          rating?: string
+          reason?: string | null
+          score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_ratings_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exchange_rates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency_id: string
+          effective_date: string
+          id: string
+          note: string | null
+          rate_to_base: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency_id: string
+          effective_date?: string
+          id?: string
+          note?: string | null
+          rate_to_base: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency_id?: string
+          effective_date?: string
+          id?: string
+          note?: string | null
+          rate_to_base?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expense_categories: {
         Row: {
@@ -173,6 +327,7 @@ export type Database = {
           expense_date: string
           id: string
           note: string | null
+          rate_at_tx: number | null
           receipt_path: string | null
           user_id: string
         }
@@ -184,6 +339,7 @@ export type Database = {
           expense_date?: string
           id?: string
           note?: string | null
+          rate_at_tx?: number | null
           receipt_path?: string | null
           user_id: string
         }
@@ -195,10 +351,65 @@ export type Database = {
           expense_date?: string
           id?: string
           note?: string | null
+          rate_at_tx?: number | null
           receipt_path?: string | null
           user_id?: string
         }
         Relationships: []
+      }
+      opening_balances: {
+        Row: {
+          amount: number
+          created_at: string
+          currency_id: string
+          direction: string
+          id: string
+          note: string | null
+          opening_date: string
+          person_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency_id: string
+          direction?: string
+          id?: string
+          note?: string | null
+          opening_date?: string
+          person_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency_id?: string
+          direction?: string
+          id?: string
+          note?: string | null
+          opening_date?: string
+          person_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opening_balances_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opening_balances_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       people: {
         Row: {
@@ -399,6 +610,7 @@ export type Database = {
           id: string
           is_paid: boolean
           person_id: string
+          rate_at_tx: number | null
           transaction_date: string
           user_id: string
         }
@@ -412,6 +624,7 @@ export type Database = {
           id?: string
           is_paid?: boolean
           person_id: string
+          rate_at_tx?: number | null
           transaction_date?: string
           user_id: string
         }
@@ -425,6 +638,7 @@ export type Database = {
           id?: string
           is_paid?: boolean
           person_id?: string
+          rate_at_tx?: number | null
           transaction_date?: string
           user_id?: string
         }
