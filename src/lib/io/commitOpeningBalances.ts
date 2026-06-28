@@ -139,9 +139,11 @@ export async function commitOpeningBalances(
   }
 
   // Build opening + payment payloads
-  const obInsert: Record<string, unknown>[] = [];
+  type OBIns = { user_id: string; person_id: string; currency_id: string; amount: number; direction: string; note: string; opening_date?: string };
+  type TxIns = { user_id: string; person_id: string; currency_id: string; amount: number; direction: string; details: string; transaction_date: string; rate_at_tx: number };
+  const obInsert: OBIns[] = [];
   const obUpdate: { id: string; amount: number; direction: string; note: string | null }[] = [];
-  const payments: Record<string, unknown>[] = [];
+  const payments: TxIns[] = [];
 
   rows.forEach((r, i) => {
     const pid = matched.get(i);
