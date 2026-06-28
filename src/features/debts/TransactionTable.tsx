@@ -3,6 +3,7 @@ import { fmtMoney, fmtDate } from "@/lib/format";
 
 interface Tx {
   id: string;
+  person_id?: string;
   amount: number;
   direction: string;
   currency_id: string;
