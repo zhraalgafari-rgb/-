@@ -14,15 +14,15 @@ interface Expense {
 interface Category { id: string; name: string; icon: string; color: string }
 interface Currency { id: string; name: string }
 
-interface Props {
-  expenses: Expense[];
+interface Props<T extends Expense = Expense> {
+  expenses: T[];
   categories: Category[];
   currencies: Currency[];
-  onEdit: (e: Expense) => void;
+  onEdit: (e: T) => void;
   onDelete: (id: string) => void;
 }
 
-export function ExpensesTable({ expenses, categories, currencies, onEdit, onDelete }: Props) {
+export function ExpensesTable<T extends Expense>({ expenses, categories, currencies, onEdit, onDelete }: Props<T>) {
   let total = 0;
   return (
     <div className="rounded-xl border-2 border-border bg-card shadow-card overflow-hidden">
