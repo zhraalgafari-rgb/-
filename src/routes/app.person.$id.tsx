@@ -20,7 +20,9 @@ import { PersonTimeline } from "@/features/debts/person/PersonTimeline";
 import { AiReminderDialog } from "@/components/ai/AiReminderDialog";
 import { CustomerHealthCard } from "@/components/CustomerHealthCard";
 import { PersonAnalytics } from "@/features/debts/person/PersonAnalytics";
+import { CustomerAttachments } from "@/features/attachments/CustomerAttachments";
 import { computeBalancesByCurrency, computeRunningByCurrency, type OpeningBalance } from "@/lib/money/balances";
+import { ClipboardList, Paperclip, BarChart3 } from "lucide-react";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
