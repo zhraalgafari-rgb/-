@@ -81,7 +81,9 @@ function SettingsPage() {
 
       {/* Debts module */}
       <SettingsGroup title="الديون">
-        <SettingsRow to="/app/currencies" icon={Coins} label="العملات" desc="إدارة العملات وأسعار التحويل" tone="primary" />
+        <SettingsRow to="/app/currencies" icon={Coins} label="العملات" desc="إدارة العملات والأساسية" tone="primary" />
+        <SettingsRow to="/app/exchange-rates" icon={Coins} label="أسعار الصرف" desc="تحديث يومي + سجل" tone="accent" />
+        <SettingsRow to="/app/opening-balances" icon={Wallet} label="الأرصدة الافتتاحية" desc="رصيد بدء لكل عميل وعملة" tone="success" />
         <SettingsRow to="/app/reminders" icon={Bell} label="التذكيرات" desc="مواعيد الاسترداد" tone="warning" />
         <SettingsRow to="/app/recurring" icon={Repeat} label="المعاملات المتكررة" desc="رواتب، إيجارات، اشتراكات" tone="success" />
         <SettingsRow to="/app/archive" icon={Archive} label="الأرشيف" desc="الأشخاص المؤرشفون" tone="muted" />

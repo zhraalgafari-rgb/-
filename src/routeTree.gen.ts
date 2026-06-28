@@ -18,9 +18,11 @@ import { Route as AppSearchRouteImport } from './routes/app.search'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppRemindersRouteImport } from './routes/app.reminders'
 import { Route as AppRecurringRouteImport } from './routes/app.recurring'
+import { Route as AppOpeningBalancesRouteImport } from './routes/app.opening-balances'
 import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
 import { Route as AppInsightsRouteImport } from './routes/app.insights'
 import { Route as AppExpensesRouteImport } from './routes/app.expenses'
+import { Route as AppExchangeRatesRouteImport } from './routes/app.exchange-rates'
 import { Route as AppCurrenciesRouteImport } from './routes/app.currencies'
 import { Route as AppCategoriesRouteImport } from './routes/app.categories'
 import { Route as AppBudgetsRouteImport } from './routes/app.budgets'
@@ -79,6 +81,11 @@ const AppRecurringRoute = AppRecurringRouteImport.update({
   path: '/recurring',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOpeningBalancesRoute = AppOpeningBalancesRouteImport.update({
+  id: '/opening-balances',
+  path: '/opening-balances',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -92,6 +99,11 @@ const AppInsightsRoute = AppInsightsRouteImport.update({
 const AppExpensesRoute = AppExpensesRouteImport.update({
   id: '/expenses',
   path: '/expenses',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExchangeRatesRoute = AppExchangeRatesRouteImport.update({
+  id: '/exchange-rates',
+  path: '/exchange-rates',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCurrenciesRoute = AppCurrenciesRouteImport.update({
@@ -165,9 +177,11 @@ export interface FileRoutesByFullPath {
   '/app/budgets': typeof AppBudgetsRoute
   '/app/categories': typeof AppCategoriesRoute
   '/app/currencies': typeof AppCurrenciesRoute
+  '/app/exchange-rates': typeof AppExchangeRatesRoute
   '/app/expenses': typeof AppExpensesRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/notifications': typeof AppNotificationsRoute
+  '/app/opening-balances': typeof AppOpeningBalancesRoute
   '/app/recurring': typeof AppRecurringRoute
   '/app/reminders': typeof AppRemindersRoute
   '/app/reports': typeof AppReportsRoute
@@ -190,9 +204,11 @@ export interface FileRoutesByTo {
   '/app/budgets': typeof AppBudgetsRoute
   '/app/categories': typeof AppCategoriesRoute
   '/app/currencies': typeof AppCurrenciesRoute
+  '/app/exchange-rates': typeof AppExchangeRatesRoute
   '/app/expenses': typeof AppExpensesRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/notifications': typeof AppNotificationsRoute
+  '/app/opening-balances': typeof AppOpeningBalancesRoute
   '/app/recurring': typeof AppRecurringRoute
   '/app/reminders': typeof AppRemindersRoute
   '/app/reports': typeof AppReportsRoute
@@ -217,9 +233,11 @@ export interface FileRoutesById {
   '/app/budgets': typeof AppBudgetsRoute
   '/app/categories': typeof AppCategoriesRoute
   '/app/currencies': typeof AppCurrenciesRoute
+  '/app/exchange-rates': typeof AppExchangeRatesRoute
   '/app/expenses': typeof AppExpensesRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/notifications': typeof AppNotificationsRoute
+  '/app/opening-balances': typeof AppOpeningBalancesRoute
   '/app/recurring': typeof AppRecurringRoute
   '/app/reminders': typeof AppRemindersRoute
   '/app/reports': typeof AppReportsRoute
@@ -245,9 +263,11 @@ export interface FileRouteTypes {
     | '/app/budgets'
     | '/app/categories'
     | '/app/currencies'
+    | '/app/exchange-rates'
     | '/app/expenses'
     | '/app/insights'
     | '/app/notifications'
+    | '/app/opening-balances'
     | '/app/recurring'
     | '/app/reminders'
     | '/app/reports'
@@ -270,9 +290,11 @@ export interface FileRouteTypes {
     | '/app/budgets'
     | '/app/categories'
     | '/app/currencies'
+    | '/app/exchange-rates'
     | '/app/expenses'
     | '/app/insights'
     | '/app/notifications'
+    | '/app/opening-balances'
     | '/app/recurring'
     | '/app/reminders'
     | '/app/reports'
@@ -296,9 +318,11 @@ export interface FileRouteTypes {
     | '/app/budgets'
     | '/app/categories'
     | '/app/currencies'
+    | '/app/exchange-rates'
     | '/app/expenses'
     | '/app/insights'
     | '/app/notifications'
+    | '/app/opening-balances'
     | '/app/recurring'
     | '/app/reminders'
     | '/app/reports'
@@ -385,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRecurringRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/opening-balances': {
+      id: '/app/opening-balances'
+      path: '/opening-balances'
+      fullPath: '/app/opening-balances'
+      preLoaderRoute: typeof AppOpeningBalancesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/notifications': {
       id: '/app/notifications'
       path: '/notifications'
@@ -404,6 +435,13 @@ declare module '@tanstack/react-router' {
       path: '/expenses'
       fullPath: '/app/expenses'
       preLoaderRoute: typeof AppExpensesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exchange-rates': {
+      id: '/app/exchange-rates'
+      path: '/exchange-rates'
+      fullPath: '/app/exchange-rates'
+      preLoaderRoute: typeof AppExchangeRatesRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/currencies': {
@@ -521,9 +559,11 @@ interface AppRouteChildren {
   AppBudgetsRoute: typeof AppBudgetsRoute
   AppCategoriesRoute: typeof AppCategoriesRoute
   AppCurrenciesRoute: typeof AppCurrenciesRoute
+  AppExchangeRatesRoute: typeof AppExchangeRatesRoute
   AppExpensesRoute: typeof AppExpensesRoute
   AppInsightsRoute: typeof AppInsightsRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
+  AppOpeningBalancesRoute: typeof AppOpeningBalancesRoute
   AppRecurringRoute: typeof AppRecurringRoute
   AppRemindersRoute: typeof AppRemindersRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -539,9 +579,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppBudgetsRoute: AppBudgetsRoute,
   AppCategoriesRoute: AppCategoriesRoute,
   AppCurrenciesRoute: AppCurrenciesRoute,
+  AppExchangeRatesRoute: AppExchangeRatesRoute,
   AppExpensesRoute: AppExpensesRoute,
   AppInsightsRoute: AppInsightsRoute,
   AppNotificationsRoute: AppNotificationsRoute,
+  AppOpeningBalancesRoute: AppOpeningBalancesRoute,
   AppRecurringRoute: AppRecurringRoute,
   AppRemindersRoute: AppRemindersRoute,
   AppReportsRoute: AppReportsRoute,
