@@ -20,7 +20,9 @@ import { PersonTimeline } from "@/features/debts/person/PersonTimeline";
 import { AiReminderDialog } from "@/components/ai/AiReminderDialog";
 import { CustomerHealthCard } from "@/components/CustomerHealthCard";
 import { PersonAnalytics } from "@/features/debts/person/PersonAnalytics";
+import { CustomerAttachments } from "@/features/attachments/CustomerAttachments";
 import { computeBalancesByCurrency, computeRunningByCurrency, type OpeningBalance } from "@/lib/money/balances";
+import { ClipboardList, Paperclip, BarChart3 } from "lucide-react";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
@@ -47,6 +49,7 @@ function PersonPage() {
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDelPerson, setConfirmDelPerson] = useState(false);
   const [openAi, setOpenAi] = useState(false);
+  const [tab, setTab] = useState<"timeline" | "attachments" | "insights">("timeline");
 
   const load = async () => {
     if (!user) return;
@@ -176,21 +179,53 @@ function PersonPage() {
 
       <PersonBalancesByCurrency name={name} phone={phone} balances={balancesByCurrency} totalTxCount={txs.length} />
 
-      <CustomerHealthCard personId={id} />
-      <PersonAnalytics txs={txs} />
+      {/* Tabs */}
+      <div className="grid grid-cols-3 gap-1 rounded-xl bg-secondary/60 p-1 ring-1 ring-border">
+        {[
+          { v: "timeline" as const,    label: "المعاملات",  icon: ClipboardList },
+          { v: "attachments" as const, label: "المرفقات",   icon: Paperclip },
+          { v: "insights" as const,    label: "تحليلات",    icon: BarChart3 },
+        ].map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.v;
+          return (
+            <button
+              key={t.v}
+              onClick={() => setTab(t.v)}
+              className={`inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11.5px] font-semibold transition ${
+                active ? "bg-card text-primary shadow-sm ring-1 ring-primary/30" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="size-3.5" /> {t.label}
+            </button>
+          );
+        })}
+      </div>
 
+      {tab === "timeline" && (
+        loading ? (
+          <ListSkeleton rows={4} />
+        ) : txs.length === 0 ? (
+          <EmptyState icon={Plus} title="لا توجد معاملات بعد" description="أضف أول معاملة لهذا الشخص." variant="compact" />
+        ) : (
+          <PersonTimeline
+            txs={txs} currencies={currencies} running={running}
+            onEdit={(t) => { setEditingTx(t); setOpenAdd(true); }}
+            onDelete={(id) => setDelTxId(id)}
+            onTogglePaid={togglePaid}
+          />
+        )
+      )}
 
-      {loading ? (
-        <ListSkeleton rows={4} />
-      ) : txs.length === 0 ? (
-        <EmptyState icon={Plus} title="لا توجد معاملات بعد" description="أضف أول معاملة لهذا الشخص." variant="compact" />
-      ) : (
-        <PersonTimeline
-          txs={txs} currencies={currencies} running={running}
-          onEdit={(t) => { setEditingTx(t); setOpenAdd(true); }}
-          onDelete={(id) => setDelTxId(id)}
-          onTogglePaid={togglePaid}
-        />
+      {tab === "attachments" && (
+        <CustomerAttachments personId={id} personPhone={phone} />
+      )}
+
+      {tab === "insights" && (
+        <div className="space-y-3">
+          <CustomerHealthCard personId={id} />
+          <PersonAnalytics txs={txs} />
+        </div>
       )}
 
       <button

@@ -1,0 +1,1 @@
+ALTER TABLE public.attachments ADD COLUMN IF NOT EXISTS category text DEFAULT 'other'; ALTER TABLE public.attachments ADD COLUMN IF NOT EXISTS note text; ALTER TABLE public.attachments ADD COLUMN IF NOT EXISTS amount numeric; ALTER TABLE public.attachments ADD COLUMN IF NOT EXISTS doc_date timestamptz;
