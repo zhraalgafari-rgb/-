@@ -201,14 +201,34 @@ function DebtsHome() {
             person: p,
             balance: personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0, totalCredit: 0, totalDebit: 0 },
           }))}
+          onEdit={(p) => { const full = people.find((x) => x.id === p.id)!; setEditingPerson({ id: full.id, name: full.name, phone: full.phone, type: full.type, notes: full.notes ?? null, avatar_color: full.avatar_color, credit_limit: full.credit_limit ?? null }); setOpenPerson(true); }}
+          onArchive={(p) => setArchivePerson(people.find((x) => x.id === p.id) ?? null)}
+          onDelete={(p) => setDelPerson(people.find((x) => x.id === p.id) ?? null)}
         />
       ) : (
         <div className="space-y-2">
           {filtered.map((p, i) => (
-            <PersonRow key={p.id} person={p} balance={personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0 }} index={i} />
+            <PersonRow
+              key={p.id}
+              person={p}
+              balance={personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0 }}
+              index={i}
+              onEdit={() => { setEditingPerson({ id: p.id, name: p.name, phone: p.phone, type: p.type, notes: p.notes ?? null, avatar_color: p.avatar_color, credit_limit: p.credit_limit ?? null }); setOpenPerson(true); }}
+              onArchive={() => setArchivePerson(p)}
+              onDelete={() => setDelPerson(p)}
+            />
           ))}
         </div>
       )}
+
+      {/* Add new customer button (floating, above the smart add) */}
+      <button
+        onClick={() => { setEditingPerson(null); setOpenPerson(true); }}
+        aria-label="إضافة عميل جديد"
+        className="fixed bottom-52 left-4 z-20 size-11 rounded-full bg-card border-2 border-success text-success shadow-elevated flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+      >
+        <UserPlus className="size-4" />
+      </button>
 
       <button
         onClick={() => setOpenSmart(true)}
