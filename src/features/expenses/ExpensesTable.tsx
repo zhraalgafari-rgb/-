@@ -9,6 +9,7 @@ interface Expense {
   currency_id: string;
   note: string | null;
   expense_date: string;
+  receipt_path?: string | null;
 }
 interface Category { id: string; name: string; icon: string; color: string }
 interface Currency { id: string; name: string }
