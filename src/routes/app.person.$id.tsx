@@ -83,26 +83,6 @@ function PersonPage() {
     [txs, openings],
   );
 
-  const balance = useMemo(() => {
-    let net = 0;
-    for (const t of txs) {
-      const cur = currencies.find((c) => c.id === t.currency_id);
-      net += Number(t.amount) * (t.direction === "credit" ? 1 : -1) * (cur?.rate ?? 1);
-    }
-    return net;
-  }, [txs, currencies]);
-
-  const running = useMemo(() => {
-    const ordered = [...txs].sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime());
-    const map: Record<string, number> = {};
-    let acc = 0;
-    for (const t of ordered) {
-      const cur = currencies.find((c) => c.id === t.currency_id);
-      acc += Number(t.amount) * (t.direction === "credit" ? 1 : -1) * (cur?.rate ?? 1);
-      map[t.id] = acc;
-    }
-    return map;
-  }, [txs, currencies]);
 
   const delTx = async () => {
     if (!delTxId) return;
