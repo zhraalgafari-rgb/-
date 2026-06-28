@@ -249,9 +249,50 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
             </label>
           </RadioGroup>
 
-          {editing && (
+          {editing ? (
             <div className="pt-2 border-t">
               <AttachmentsManager entityType="transaction" entityId={editing.id} />
+            </div>
+          ) : (
+            <div className="pt-2 border-t space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                <Paperclip className="size-3.5" /> إرفاق مستند (اختياري — فاتورة، سند، صورة)
+              </Label>
+              <input
+                ref={fileRef}
+                type="file"
+                className="hidden"
+                accept="image/*,application/pdf"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  if (f.size > 5 * 1024 * 1024) { toast.error("الحد الأقصى 5MB"); return; }
+                  setPendingFile(f);
+                }}
+              />
+              {pendingFile ? (
+                <div className="flex items-center justify-between gap-2 rounded-lg border-2 border-primary/30 bg-primary/5 px-2.5 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {pendingFile.type.startsWith("image/") ? <ImageIcon className="size-4 text-primary shrink-0" /> : <FileText className="size-4 text-primary shrink-0" />}
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-medium truncate">{pendingFile.name}</div>
+                      <div className="text-[10px] text-muted-foreground">{(pendingFile.size / 1024).toFixed(1)} KB</div>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => { setPendingFile(null); if (fileRef.current) fileRef.current.value = ""; }} className="p-1 rounded hover:bg-danger/10 text-danger shrink-0">
+                    <X className="size-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary px-3 py-3 text-[12px] font-medium transition-colors"
+                >
+                  <Paperclip className="size-4" />
+                  اختر ملفاً للرفع (PDF أو صورة، حد أقصى 5MB)
+                </button>
+              )}
             </div>
           )}
 
