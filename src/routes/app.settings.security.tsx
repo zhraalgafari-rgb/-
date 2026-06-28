@@ -25,6 +25,7 @@ function SecurityPage() {
   const [pin2, setPin2] = useState("");
   const [autolock, setAutolock] = useState<number>(5);
   const [biometric, setBiometric] = useState(false);
+  const [bioSupported, setBioSupported] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [busy, setBusy] = useState(false);
 
