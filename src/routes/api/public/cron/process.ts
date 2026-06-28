@@ -159,7 +159,7 @@ export const Route = createFileRoute("/api/public/cron/process")({
             results[p.user_id] = s;
             totalReminders += s.reminders;
             totalRecurring += s.recurring;
-            if (s.backup && s.backup !== false) totalBackups++;
+            if (s.backup) totalBackups++;
           } catch (e: any) {
             results[p.user_id] = { error: e?.message ?? "failed" };
           }

@@ -36,6 +36,7 @@ import { Route as AppSettingsCompanyRouteImport } from './routes/app.settings.co
 import { Route as AppSettingsAppearanceRouteImport } from './routes/app.settings.appearance'
 import { Route as AppSettingsAboutRouteImport } from './routes/app.settings.about'
 import { Route as AppPersonIdRouteImport } from './routes/app.person.$id'
+import { Route as ApiPublicCronProcessRouteImport } from './routes/api/public/cron/process'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -173,6 +174,11 @@ const AppPersonIdRoute = AppPersonIdRouteImport.update({
   path: '/person/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicCronProcessRoute = ApiPublicCronProcessRouteImport.update({
+  id: '/api/public/cron/process',
+  path: '/api/public/cron/process',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -202,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/profile': typeof AppSettingsProfileRoute
   '/app/settings/security': typeof AppSettingsSecurityRoute
+  '/api/public/cron/process': typeof ApiPublicCronProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/profile': typeof AppSettingsProfileRoute
   '/app/settings/security': typeof AppSettingsSecurityRoute
+  '/api/public/cron/process': typeof ApiPublicCronProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/settings/profile': typeof AppSettingsProfileRoute
   '/app/settings/security': typeof AppSettingsSecurityRoute
+  '/api/public/cron/process': typeof ApiPublicCronProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/app/settings/notifications'
     | '/app/settings/profile'
     | '/app/settings/security'
+    | '/api/public/cron/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/app/settings/notifications'
     | '/app/settings/profile'
     | '/app/settings/security'
+    | '/api/public/cron/process'
   id:
     | '__root__'
     | '/'
@@ -348,12 +359,14 @@ export interface FileRouteTypes {
     | '/app/settings/notifications'
     | '/app/settings/profile'
     | '/app/settings/security'
+    | '/api/public/cron/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicCronProcessRoute: typeof ApiPublicCronProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -547,6 +560,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPersonIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/cron/process': {
+      id: '/api/public/cron/process'
+      path: '/api/public/cron/process'
+      fullPath: '/api/public/cron/process'
+      preLoaderRoute: typeof ApiPublicCronProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -620,6 +640,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicCronProcessRoute: ApiPublicCronProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
