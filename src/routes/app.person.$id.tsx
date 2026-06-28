@@ -18,6 +18,8 @@ import { PersonActionsBar } from "@/features/debts/person/PersonActionsBar";
 import { PersonBalancesByCurrency } from "@/features/debts/person/PersonBalancesByCurrency";
 import { PersonTimeline } from "@/features/debts/person/PersonTimeline";
 import { AiReminderDialog } from "@/components/ai/AiReminderDialog";
+import { CustomerHealthCard } from "@/components/CustomerHealthCard";
+import { PersonAnalytics } from "@/features/debts/person/PersonAnalytics";
 import { computeBalancesByCurrency, computeRunningByCurrency, type OpeningBalance } from "@/lib/money/balances";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
@@ -173,6 +175,10 @@ function PersonPage() {
       />
 
       <PersonBalancesByCurrency name={name} phone={phone} balances={balancesByCurrency} totalTxCount={txs.length} />
+
+      <CustomerHealthCard personId={id} />
+      <PersonAnalytics txs={txs} />
+
 
       {loading ? (
         <ListSkeleton rows={4} />
