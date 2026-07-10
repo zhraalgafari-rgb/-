@@ -53,7 +53,7 @@ export async function commitOpeningBalances(
   };
 
   // Load currencies
-  const { data: curData } = await supabase.from("currencies").select("id,name,symbol,is_base").eq("user_id", userId);
+  const { data: curData } = await supabase.from("currencies").select("id,name,symbol,is_base,rate").eq("user_id", userId);
   const curs = (curData ?? []) as CurrencyLite[];
   const baseId = curs.find((c) => c.is_base)?.id ?? curs[0]?.id;
   if (!baseId) { res.errors.push("لا توجد عملات معرّفة"); return res; }
