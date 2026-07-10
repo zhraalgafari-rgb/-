@@ -174,7 +174,7 @@ export async function commitOpeningBalances(
         direction: r.direction === "credit" ? "debit" : "credit", // payment reduces the balance
         details: "آخر دفعة (مستورد)",
         transaction_date: dt,
-        rate_at_tx: 1,
+        rate_at_tx: Number(curs.find((c) => c.id === curId)?.rate) || 1,
       });
     }
   });
