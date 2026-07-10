@@ -11,13 +11,17 @@ import { toast } from "sonner";
 
 const AUTOLOCK_KEY = "daftarak.autolock.minutes";
 const LAST_ACTIVE_KEY = "daftarak.lastActive";
+const ATTEMPTS_KEY = "daftarak.pin.attempts";
 
 export function PinLockGate({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const [pinHash, setPinHash] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(true);
   const [pin, setPin] = useState("");
-  const [attempts, setAttempts] = useState(0);
+  const [attempts, setAttempts] = useState(() => {
+    if (typeof localStorage === "undefined") return 0;
+    return Number(localStorage.getItem(ATTEMPTS_KEY) ?? "0") || 0;
+  });
   const [waitMs, setWaitMs] = useState(0);
   const [checking, setChecking] = useState(true);
   const autolockMin = useRef(5);
@@ -97,17 +101,20 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
     if (h === pinHash) {
       markUnlocked();
       clearLockTimer();
-      try { sessionStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); } catch { /* ignore */ }
+      try { sessionStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); localStorage.removeItem(ATTEMPTS_KEY); } catch { /* ignore */ }
+      setAttempts(0);
       setUnlocked(true);
       setPin("");
     } else {
       const a = attempts + 1;
       setAttempts(a);
+      try { localStorage.setItem(ATTEMPTS_KEY, String(a)); } catch { /* ignore */ }
       setPin("");
       if (a >= 3) {
         setLockedUntil(30_000);
         setWaitMs(30_000);
         setAttempts(0);
+        try { localStorage.removeItem(ATTEMPTS_KEY); } catch { /* ignore */ }
         toast.error("تم تجاوز المحاولات. انتظر 30 ثانية");
       } else {
         toast.error(`رقم غير صحيح (${3 - a} محاولات متبقية)`);

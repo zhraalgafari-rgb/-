@@ -12,7 +12,7 @@ export interface AiOpeningRow {
   notes: string;
 }
 
-interface CurrencyLite { id: string; name: string; symbol: string; is_base: boolean }
+interface CurrencyLite { id: string; name: string; symbol: string; is_base: boolean; rate: number }
 
 function normName(s: string) {
   return s.trim().replace(/\s+/g, " ").toLowerCase();
@@ -53,7 +53,7 @@ export async function commitOpeningBalances(
   };
 
   // Load currencies
-  const { data: curData } = await supabase.from("currencies").select("id,name,symbol,is_base").eq("user_id", userId);
+  const { data: curData } = await supabase.from("currencies").select("id,name,symbol,is_base,rate").eq("user_id", userId);
   const curs = (curData ?? []) as CurrencyLite[];
   const baseId = curs.find((c) => c.is_base)?.id ?? curs[0]?.id;
   if (!baseId) { res.errors.push("لا توجد عملات معرّفة"); return res; }
@@ -174,7 +174,7 @@ export async function commitOpeningBalances(
         direction: r.direction === "credit" ? "debit" : "credit", // payment reduces the balance
         details: "آخر دفعة (مستورد)",
         transaction_date: dt,
-        rate_at_tx: 1,
+        rate_at_tx: Number(curs.find((c) => c.id === curId)?.rate) || 1,
       });
     }
   });

@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { MappedTx } from "./importExcel";
 
-interface CurrencyLite { id: string; name: string; symbol: string; is_base: boolean }
+interface CurrencyLite { id: string; name: string; symbol: string; is_base: boolean; rate: number }
 
 /** Best-effort match for a per-row currency name/symbol to one of the user's currencies. */
 function matchCurrency(raw: string | null, currencies: CurrencyLite[], baseId: string): string {
@@ -24,7 +24,7 @@ export async function commitImportedTxs(
   baseCurrencyId: string,
   rows: MappedTx[],
 ): Promise<{ inserted: number; failed: number; people: number; openings: number }> {
-  const { data: currencies } = await supabase.from("currencies").select("id,name,symbol,is_base").eq("user_id", userId);
+  const { data: currencies } = await supabase.from("currencies").select("id,name,symbol,is_base,rate").eq("user_id", userId);
   const curs = (currencies ?? []) as CurrencyLite[];
 
   const { data: existing } = await supabase.from("people").select("id,name,phone").eq("user_id", userId);
@@ -63,7 +63,7 @@ export async function commitImportedTxs(
     const person = peopleMap.get(r.name.trim().toLowerCase());
     if (!person) continue;
     const curId = matchCurrency(r.currency, curs, baseCurrencyId);
-    const rate = curs.find((c) => c.id === curId);
+    const cur = curs.find((c) => c.id === curId);
     txPayload.push({
       user_id: userId,
       person_id: person.id,
@@ -72,9 +72,8 @@ export async function commitImportedTxs(
       direction: r.direction,
       details: r.details,
       transaction_date: r.date,
-      rate_at_tx: 1, // historical default; live currencies.rate handled elsewhere
+      rate_at_tx: Number(cur?.rate) || 1,
     });
-    void rate;
     if (r.opening_balance != null) {
       openPayload.push({
         user_id: userId,

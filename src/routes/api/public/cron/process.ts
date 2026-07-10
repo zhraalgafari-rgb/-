@@ -134,9 +134,13 @@ export const Route = createFileRoute("/api/public/cron/process")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apikey = request.headers.get("apikey") ?? "";
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
-        if (!apikey || !expected || apikey !== expected) {
+        // Dedicated cron secret — NEVER the publishable key (that ships to the browser).
+        // Accept either "Authorization: Bearer <secret>" or "x-cron-secret" header.
+        const auth = request.headers.get("authorization") ?? "";
+        const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+        const provided = bearer || request.headers.get("x-cron-secret") || "";
+        const expected = process.env.CRON_SECRET ?? "";
+        if (!expected || !provided || provided !== expected) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401, headers: { "content-type": "application/json" },
           });
