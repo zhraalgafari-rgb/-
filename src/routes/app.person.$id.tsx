@@ -139,18 +139,35 @@ function PersonPage() {
   };
 
   const buildShareText = () => {
-    const lines = [`📒 كشف حساب: ${name}`, ""];
-    for (const t of [...txs].sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime())) {
-      const cur = currencies.find((c) => c.id === t.currency_id)?.name ?? "";
-      const sign = t.direction === "credit" ? "+" : "-";
-      lines.push(`${fmtDate(t.transaction_date)} | ${sign}${fmtMoney(Number(t.amount))} ${cur}${t.details ? " — " + t.details : ""}`);
+    const companyName = company?.name?.trim() || "دفترك";
+    const today = new Date().toLocaleDateString("ar-EG");
+    const lines: string[] = [];
+    lines.push("السلام عليكم ورحمة الله وبركاته");
+    lines.push(`الأستاذ/ ${name} المحترم`);
+    lines.push("تحية طيبة وبعد،");
+    lines.push("");
+    lines.push(`نرفق لكم كشف حسابكم لدى *${companyName}* حتى تاريخ ${today}:`);
+    lines.push("");
+    // Per-currency summary lines — each currency shown SEPARATELY.
+    const nonZero = balancesByCurrency.filter((b) => Math.abs(b.balance) > 0.009 || b.txCount > 0);
+    if (nonZero.length === 0) {
+      lines.push("• لا توجد حركات مسجلة حالياً.");
+    } else {
+      for (const b of nonZero) {
+        const tag = b.balance >= 0 ? "له" : "عليه";
+        const amt = Math.abs(b.balance).toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        lines.push(`• ${b.currency.name}: ${amt} ${b.currency.symbol} (${tag})`);
+      }
     }
     lines.push("");
-    for (const b of balancesByCurrency) {
-      const tag = b.balance >= 0 ? "(له)" : "(عليه)";
-      lines.push(`${b.currency.name}: ${fmtMoney(Math.abs(b.balance))} ${b.currency.symbol} ${tag}`);
-    }
-    lines.push("— عبر تطبيق دفترك");
+    lines.push(`عدد الحركات: ${txs.length}`);
+    lines.push("");
+    lines.push("نرجو مراجعة الكشف، والتواصل معنا في حال وجود أي استفسار أو ملاحظة.");
+    lines.push("");
+    lines.push("مع خالص التقدير والاحترام،");
+    lines.push(companyName);
+    if (company?.phone) lines.push(`📞 ${company.phone}`);
+    if (company?.address) lines.push(company.address);
     return lines.join("\n");
   };
 
