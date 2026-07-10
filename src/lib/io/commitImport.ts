@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { MappedTx } from "./importExcel";
 
-interface CurrencyLite { id: string; name: string; symbol: string; is_base: boolean }
+interface CurrencyLite { id: string; name: string; symbol: string; is_base: boolean; rate: number }
 
 /** Best-effort match for a per-row currency name/symbol to one of the user's currencies. */
 function matchCurrency(raw: string | null, currencies: CurrencyLite[], baseId: string): string {
