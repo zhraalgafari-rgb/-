@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 const AUTOLOCK_KEY = "daftarak.autolock.minutes";
 const LAST_ACTIVE_KEY = "daftarak.lastActive";
+const ATTEMPTS_KEY = "daftarak.pin.attempts";
 
 export function PinLockGate({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
