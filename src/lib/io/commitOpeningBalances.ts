@@ -12,7 +12,7 @@ export interface AiOpeningRow {
   notes: string;
 }
 
-interface CurrencyLite { id: string; name: string; symbol: string; is_base: boolean }
+interface CurrencyLite { id: string; name: string; symbol: string; is_base: boolean; rate: number }
 
 function normName(s: string) {
   return s.trim().replace(/\s+/g, " ").toLowerCase();
