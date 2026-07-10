@@ -73,14 +73,17 @@ export async function exportAllToExcel(userId: string, fileName = `daftarak-${Da
    Professional Customer Statement (Arabic, styled, per-currency)
    ============================================================ */
 
-const COL_HEAD_BG = "FF1E40AF";
+const COL_HEAD_BG = "FF0B3D91";       // Deep professional blue
 const COL_HEAD_TXT = "FFFFFFFF";
-const COL_SECTION_BG = "FFDBEAFE";
+const COL_SUBHEAD_BG = "FF1E40AF";
+const COL_SECTION_BG = "FFE0E7FF";
+const COL_INFO_BG = "FFF1F5F9";
 const COL_ZEBRA = "FFF8FAFC";
 const COL_TOTAL_BG = "FFFEF3C7";
 const COL_CREDIT = "FF047857";
 const COL_DEBIT = "FFB91C1C";
-const COL_BORDER = "FF64748B";
+const COL_BORDER = "FF94A3B8";
+const COL_BORDER_STRONG = "FF0B3D91";
 
 const thinBorder = {
   top:    { style: "thin" as const, color: { argb: COL_BORDER } },
@@ -89,14 +92,21 @@ const thinBorder = {
   right:  { style: "thin" as const, color: { argb: COL_BORDER } },
 };
 
-const ARABIC_NUM_FMT = '#,##0.00;[Red]-#,##0.00;"—"';
+// English digits, thousands separator, 2 decimals, red negatives, dash for zero
+const NUM_FMT = '#,##0.00;[Red]-#,##0.00;"-"';
+
+// Force English (Latin) digits for dates and formatted numbers
+const fmtDateEN = (d: string | Date) =>
+  new Date(d).toLocaleDateString("en-GB"); // dd/MM/yyyy in Latin digits
+const fmtNumEN = (n: number) =>
+  n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /** Build one professional workbook for a single currency's statement. */
 async function buildStatementWorkbookForCurrency(opts: {
   person: PersonRow;
   currency: CurRow;
   txs: TxRow[];
-  opening: number; // signed: +credit / -debit
+  opening: number;
   company: CompanyRow | null;
 }): Promise<ArrayBuffer> {
   const { person: p, currency: cur, txs: list, opening, company: comp } = opts;
@@ -107,68 +117,98 @@ async function buildStatementWorkbookForCurrency(opts: {
 
   const ws = wb.addWorksheet(`كشف ${cur.name}`, {
     views: [{ rightToLeft: true, showGridLines: false, state: "normal" }],
-    pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } },
+    pageSetup: {
+      paperSize: 9, orientation: "portrait",
+      fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+      margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
+    },
   });
 
   ws.columns = [
     { width: 6 },   // A #
     { width: 14 },  // B Date
-    { width: 40 },  // C Details
+    { width: 42 },  // C Details
     { width: 16 },  // D Debit
     { width: 16 },  // E Credit
     { width: 18 },  // F Balance
   ];
 
-  // ==== Company header
+  /* ============ COMPANY HEADER (main brand block) ============ */
+  // Row 1: Company name — big, bold, centered
   ws.mergeCells("A1:F1");
-  const c1 = ws.getCell("A1");
-  c1.value = comp?.name || "كشف حساب عميل";
-  c1.font = { name: "Arial", size: 20, bold: true, color: { argb: "FFFFFFFF" } };
-  c1.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl" };
-  c1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_HEAD_BG } };
-  ws.getRow(1).height = 38;
+  const h1 = ws.getCell("A1");
+  h1.value = comp?.name || "اسم المنشأة";
+  h1.font = { name: "Arial", size: 22, bold: true, color: { argb: "FFFFFFFF" } };
+  h1.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl" };
+  h1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_HEAD_BG } };
+  ws.getRow(1).height = 42;
 
+  // Row 2: Address
   ws.mergeCells("A2:F2");
-  const c2 = ws.getCell("A2");
-  const line = [comp?.address, comp?.phone && `📞 ${comp.phone}`, comp?.email, comp?.tax_number && `الرقم الضريبي: ${comp.tax_number}`].filter(Boolean).join("  •  ");
-  c2.value = line || " ";
-  c2.font = { name: "Arial", size: 10, color: { argb: "FFE0E7FF" } };
-  c2.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl" };
-  c2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } };
+  const h2 = ws.getCell("A2");
+  h2.value = comp?.address ? `العنوان: ${comp.address}` : " ";
+  h2.font = { name: "Arial", size: 11, color: { argb: "FFFFFFFF" } };
+  h2.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl" };
+  h2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_SUBHEAD_BG } };
   ws.getRow(2).height = 20;
 
+  // Row 3: Phone • Email • Tax No
   ws.mergeCells("A3:F3");
-  const c3 = ws.getCell("A3");
-  c3.value = `كشف حساب عميل — بعملة ${cur.name}`;
-  c3.font = { name: "Arial", size: 14, bold: true, color: { argb: "FF1E40AF" } };
-  c3.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl" };
-  c3.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_SECTION_BG } };
-  ws.getRow(3).height = 26;
+  const h3 = ws.getCell("A3");
+  const contactParts: string[] = [];
+  if (comp?.phone) contactParts.push(`هاتف: ${comp.phone}`);
+  if (comp?.email) contactParts.push(`البريد: ${comp.email}`);
+  if (comp?.tax_number) contactParts.push(`الرقم الضريبي: ${comp.tax_number}`);
+  h3.value = contactParts.length ? contactParts.join("   |   ") : " ";
+  h3.font = { name: "Arial", size: 10, color: { argb: "FFE0E7FF" } };
+  h3.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl" };
+  h3.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_SUBHEAD_BG } };
+  ws.getRow(3).height = 18;
 
-  // ==== Customer info
-  ws.getCell("A4").value = "اسم العميل:"; ws.getCell("B4").value = p.name;
-  ws.getCell("D4").value = "رقم الجوال:"; ws.getCell("E4").value = p.phone ?? "—";
-  ws.getCell("A5").value = "تاريخ الكشف:"; ws.getCell("B5").value = new Date().toLocaleDateString("ar-EG");
-  ws.getCell("D5").value = "عدد الحركات:"; ws.getCell("E5").value = list.length;
-  for (const ref of ["A4", "D4", "A5", "D5"]) {
-    const c = ws.getCell(ref);
-    c.font = { name: "Arial", size: 11, bold: true, color: { argb: "FF374151" } };
-    c.alignment = { horizontal: "right", vertical: "middle", readingOrder: "rtl" };
-    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
-    c.border = thinBorder;
-  }
-  for (const ref of ["B4", "E4", "B5", "E5"]) {
-    const c = ws.getCell(ref);
-    c.font = { name: "Arial", size: 11, color: { argb: "FF111827" } };
-    c.alignment = { horizontal: "right", vertical: "middle", readingOrder: "rtl" };
-    c.border = thinBorder;
-  }
-  ws.mergeCells("B4:C4"); ws.mergeCells("E4:F4");
-  ws.mergeCells("B5:C5"); ws.mergeCells("E5:F5");
-  ws.getRow(4).height = 22; ws.getRow(5).height = 22;
+  // Row 4: Statement title band
+  ws.mergeCells("A4:F4");
+  const h4 = ws.getCell("A4");
+  h4.value = `كشف حساب عميل — بعملة ${cur.name}`;
+  h4.font = { name: "Arial", size: 14, bold: true, color: { argb: COL_HEAD_BG } };
+  h4.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl" };
+  h4.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_SECTION_BG } };
+  h4.border = { bottom: { style: "medium", color: { argb: COL_BORDER_STRONG } } };
+  ws.getRow(4).height = 28;
 
-  // ==== Table header
-  let row = 7;
+  /* ============ CUSTOMER INFO BLOCK ============ */
+  const infoRows: [string, string | number, string, string | number][] = [
+    ["اسم العميل:", p.name || "—", "رقم الجوال:", p.phone ?? "—"],
+    ["تاريخ الكشف:", fmtDateEN(new Date()), "عدد الحركات:", list.length],
+  ];
+
+  let r = 5;
+  for (const [l1, v1, l2, v2] of infoRows) {
+    ws.getCell(`A${r}`).value = l1;
+    ws.mergeCells(`B${r}:C${r}`);
+    ws.getCell(`B${r}`).value = v1;
+    ws.getCell(`D${r}`).value = l2;
+    ws.mergeCells(`E${r}:F${r}`);
+    ws.getCell(`E${r}`).value = v2;
+
+    for (const ref of [`A${r}`, `D${r}`]) {
+      const c = ws.getCell(ref);
+      c.font = { name: "Arial", size: 11, bold: true, color: { argb: "FF1F2937" } };
+      c.alignment = { horizontal: "right", vertical: "middle", readingOrder: "rtl" };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_INFO_BG } };
+      c.border = thinBorder;
+    }
+    for (const ref of [`B${r}`, `E${r}`]) {
+      const c = ws.getCell(ref);
+      c.font = { name: "Arial", size: 11, color: { argb: "FF111827" } };
+      c.alignment = { horizontal: "right", vertical: "middle", readingOrder: "rtl" };
+      c.border = thinBorder;
+    }
+    ws.getRow(r).height = 22;
+    r++;
+  }
+
+  /* ============ TABLE ============ */
+  let row = r + 1;
   const headers = ["#", "التاريخ", "البيان", "مدين (عليه)", "دائن (له)", `الرصيد (${cur.symbol || cur.name})`];
   headers.forEach((h, i) => {
     const c = ws.getCell(row, i + 1);
@@ -178,10 +218,10 @@ async function buildStatementWorkbookForCurrency(opts: {
     c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_HEAD_BG } };
     c.border = thinBorder;
   });
-  ws.getRow(row).height = 28;
+  ws.getRow(row).height = 30;
   row++;
 
-  // ==== Opening balance row
+  // Opening balance
   let balance = opening;
   let totalDebit = opening < 0 ? Math.abs(opening) : 0;
   let totalCredit = opening > 0 ? opening : 0;
@@ -200,13 +240,13 @@ async function buildStatementWorkbookForCurrency(opts: {
       c.alignment = { horizontal: i === 2 ? "right" : "center", vertical: "middle", readingOrder: "rtl" };
       c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7ED" } };
       c.font = { name: "Arial", size: 10, italic: true, bold: true, color: { argb: "FF9A3412" } };
-      if (i >= 3) c.numFmt = ARABIC_NUM_FMT;
+      if (i >= 3) c.numFmt = NUM_FMT;
     });
     ws.getRow(row).height = 20;
     row++;
   }
 
-  // ==== Data rows
+  // Rows
   const sorted = list.slice().sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime());
   sorted.forEach((t, idx) => {
     const amt = Number(t.amount);
@@ -215,7 +255,7 @@ async function buildStatementWorkbookForCurrency(opts: {
 
     const cells: (string | number | null)[] = [
       idx + 1,
-      new Date(t.transaction_date).toLocaleDateString("ar-EG"),
+      fmtDateEN(t.transaction_date),
       t.details ?? "—",
       credit ? null : amt,
       credit ? amt : null,
@@ -229,7 +269,7 @@ async function buildStatementWorkbookForCurrency(opts: {
       c.alignment = { horizontal: i === 2 ? "right" : "center", vertical: "middle", readingOrder: "rtl", wrapText: i === 2 };
       c.font = { name: "Arial", size: 10, color: { argb: "FF111827" } };
       if (zebra) c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_ZEBRA } };
-      if (i >= 3) c.numFmt = ARABIC_NUM_FMT;
+      if (i >= 3) c.numFmt = NUM_FMT;
       if (i === 3 && v != null) c.font = { name: "Arial", size: 10, bold: true, color: { argb: COL_DEBIT } };
       if (i === 4 && v != null) c.font = { name: "Arial", size: 10, bold: true, color: { argb: COL_CREDIT } };
       if (i === 5) c.font = { name: "Arial", size: 10, bold: true, color: { argb: balance >= 0 ? COL_CREDIT : COL_DEBIT } };
@@ -238,7 +278,7 @@ async function buildStatementWorkbookForCurrency(opts: {
     row++;
   });
 
-  // ==== Totals row
+  // Totals
   const totalCells: (string | number | null)[] = ["", "", "الإجمالي", totalDebit, totalCredit, balance];
   totalCells.forEach((v, i) => {
     const c = ws.getCell(row, i + 1);
@@ -247,7 +287,7 @@ async function buildStatementWorkbookForCurrency(opts: {
     c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_TOTAL_BG } };
     c.alignment = { horizontal: i === 2 ? "right" : "center", vertical: "middle", readingOrder: "rtl" };
     c.font = { name: "Arial", size: 11, bold: true, color: { argb: "FF111827" } };
-    if (i >= 3) c.numFmt = ARABIC_NUM_FMT;
+    if (i >= 3) c.numFmt = NUM_FMT;
     if (i === 3) c.font = { name: "Arial", size: 11, bold: true, color: { argb: COL_DEBIT } };
     if (i === 4) c.font = { name: "Arial", size: 11, bold: true, color: { argb: COL_CREDIT } };
     if (i === 5) c.font = { name: "Arial", size: 12, bold: true, color: { argb: balance >= 0 ? COL_CREDIT : COL_DEBIT } };
@@ -255,28 +295,40 @@ async function buildStatementWorkbookForCurrency(opts: {
   ws.getRow(row).height = 26;
   row++;
 
-  // ==== Final balance summary
+  // Final balance
   ws.mergeCells(`A${row}:F${row}`);
   const fb = ws.getCell(`A${row}`);
   const status = balance >= 0 ? "له" : "عليه";
-  fb.value = `الرصيد النهائي بعملة ${cur.name}: ${Math.abs(balance).toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur.symbol ?? ""} (${status})`;
+  fb.value = `الرصيد النهائي بعملة ${cur.name}: ${fmtNumEN(Math.abs(balance))} ${cur.symbol ?? ""} (${status})`;
   fb.font = { name: "Arial", size: 13, bold: true, color: { argb: balance >= 0 ? COL_CREDIT : COL_DEBIT } };
   fb.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl" };
-  fb.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+  fb.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL_INFO_BG } };
   fb.border = thinBorder;
   ws.getRow(row).height = 28;
   row += 2;
 
-  // ==== Footer
+  // Notes (from company profile)
+  if (comp?.notes) {
+    ws.mergeCells(`A${row}:F${row}`);
+    const nt = ws.getCell(`A${row}`);
+    nt.value = comp.notes;
+    nt.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF374151" } };
+    nt.alignment = { horizontal: "right", vertical: "middle", readingOrder: "rtl", wrapText: true };
+    ws.getRow(row).height = 22;
+    row++;
+  }
+
+  // Footer
   ws.mergeCells(`A${row}:F${row}`);
   const ft = ws.getCell(`A${row}`);
-  ft.value = `${comp?.name ? comp.name + "  •  " : ""}تم الإنشاء بواسطة دفترك  •  ${new Date().toLocaleString("ar-EG")}`;
+  ft.value = `${comp?.name ? comp.name + "  •  " : ""}تم الإنشاء بواسطة دفترك  •  ${fmtDateEN(new Date())}`;
   ft.font = { name: "Arial", size: 9, italic: true, color: { argb: "FF6B7280" } };
   ft.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rtl" };
   ws.getRow(row).height = 18;
 
   return await wb.xlsx.writeBuffer() as ArrayBuffer;
 }
+
 
 /**
  * Export professional Excel statements for a customer.
