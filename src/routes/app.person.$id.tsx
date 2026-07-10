@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { fmtMoney, fmtDate } from "@/lib/format";
+
 import { toast } from "sonner";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
