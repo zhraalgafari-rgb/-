@@ -101,17 +101,20 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
     if (h === pinHash) {
       markUnlocked();
       clearLockTimer();
-      try { sessionStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); } catch { /* ignore */ }
+      try { sessionStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); localStorage.removeItem(ATTEMPTS_KEY); } catch { /* ignore */ }
+      setAttempts(0);
       setUnlocked(true);
       setPin("");
     } else {
       const a = attempts + 1;
       setAttempts(a);
+      try { localStorage.setItem(ATTEMPTS_KEY, String(a)); } catch { /* ignore */ }
       setPin("");
       if (a >= 3) {
         setLockedUntil(30_000);
         setWaitMs(30_000);
         setAttempts(0);
+        try { localStorage.removeItem(ATTEMPTS_KEY); } catch { /* ignore */ }
         toast.error("تم تجاوز المحاولات. انتظر 30 ثانية");
       } else {
         toast.error(`رقم غير صحيح (${3 - a} محاولات متبقية)`);
