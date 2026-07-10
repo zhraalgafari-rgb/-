@@ -19,7 +19,7 @@ interface CatRow { id: string; name: string }
 interface OpeningRow { currency_id: string; amount: number; direction: string; note?: string | null; balance_date?: string | null }
 interface CompanyRow {
   name: string | null; address: string | null; phone: string | null;
-  email: string | null; tax_number: string | null;
+  email: string | null; tax_number: string | null; notes?: string | null;
 }
 
 export async function exportAllToExcel(userId: string, fileName = `daftarak-${Date.now()}.xlsx`) {
