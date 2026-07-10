@@ -24,7 +24,7 @@ export async function commitImportedTxs(
   baseCurrencyId: string,
   rows: MappedTx[],
 ): Promise<{ inserted: number; failed: number; people: number; openings: number }> {
-  const { data: currencies } = await supabase.from("currencies").select("id,name,symbol,is_base").eq("user_id", userId);
+  const { data: currencies } = await supabase.from("currencies").select("id,name,symbol,is_base,rate").eq("user_id", userId);
   const curs = (currencies ?? []) as CurrencyLite[];
 
   const { data: existing } = await supabase.from("people").select("id,name,phone").eq("user_id", userId);
