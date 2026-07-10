@@ -20,11 +20,12 @@ export const analyzeCustomerRating = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
 
     const [{ data: person }, { data: txs }] = await Promise.all([
-      supabase.from("people").select("id,name").eq("id", data.person_id).single(),
+      supabase.from("people").select("id,name").eq("id", data.person_id).eq("user_id", userId).single(),
       supabase
         .from("transactions")
         .select("amount,direction,transaction_date,due_date,is_paid,details")
         .eq("person_id", data.person_id)
+        .eq("user_id", userId)
         .order("transaction_date", { ascending: true })
         .limit(200),
     ]);
