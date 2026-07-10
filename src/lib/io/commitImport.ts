@@ -63,7 +63,7 @@ export async function commitImportedTxs(
     const person = peopleMap.get(r.name.trim().toLowerCase());
     if (!person) continue;
     const curId = matchCurrency(r.currency, curs, baseCurrencyId);
-    const rate = curs.find((c) => c.id === curId);
+    const cur = curs.find((c) => c.id === curId);
     txPayload.push({
       user_id: userId,
       person_id: person.id,
@@ -72,9 +72,8 @@ export async function commitImportedTxs(
       direction: r.direction,
       details: r.details,
       transaction_date: r.date,
-      rate_at_tx: 1, // historical default; live currencies.rate handled elsewhere
+      rate_at_tx: Number(cur?.rate) || 1,
     });
-    void rate;
     if (r.opening_balance != null) {
       openPayload.push({
         user_id: userId,
