@@ -42,6 +42,7 @@ function PersonPage() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [openings, setOpenings] = useState<OpeningBalance[]>([]);
   const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
+  const [company, setCompany] = useState<{ name: string | null; phone: string | null; address: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
   const [editingTx, setEditingTx] = useState<Tx | null>(null);
@@ -54,12 +55,13 @@ function PersonPage() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [{ data: person }, { data: t }, { data: c }, { data: p }, { data: ob }] = await Promise.all([
+    const [{ data: person }, { data: t }, { data: c }, { data: p }, { data: ob }, { data: co }] = await Promise.all([
       supabase.from("people").select("name,phone").eq("id", id).single(),
       supabase.from("transactions").select("*").eq("person_id", id).order("transaction_date", { ascending: false }),
       supabase.from("currencies").select("*").order("is_base", { ascending: false }),
       supabase.from("people").select("id,name"),
       supabase.from("opening_balances").select("currency_id,amount,direction").eq("person_id", id),
+      supabase.from("company_profile").select("name,phone,address").maybeSingle(),
     ]);
     setName(person?.name ?? "");
     setPhone(person?.phone ?? null);
@@ -69,6 +71,7 @@ function PersonPage() {
     setCurrencies((c ?? []) as Currency[]);
     setPeople((p ?? []) as { id: string; name: string }[]);
     setOpenings((ob ?? []) as OpeningBalance[]);
+    setCompany((co as { name: string | null; phone: string | null; address: string | null } | null) ?? null);
     setLoading(false);
   };
 
