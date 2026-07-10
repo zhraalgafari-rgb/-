@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { fmtMoney, fmtDate } from "@/lib/format";
+
 import { toast } from "sonner";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -42,6 +42,7 @@ function PersonPage() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [openings, setOpenings] = useState<OpeningBalance[]>([]);
   const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
+  const [company, setCompany] = useState<{ name: string | null; phone: string | null; address: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
   const [editingTx, setEditingTx] = useState<Tx | null>(null);
@@ -54,12 +55,13 @@ function PersonPage() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [{ data: person }, { data: t }, { data: c }, { data: p }, { data: ob }] = await Promise.all([
+    const [{ data: person }, { data: t }, { data: c }, { data: p }, { data: ob }, { data: co }] = await Promise.all([
       supabase.from("people").select("name,phone").eq("id", id).single(),
       supabase.from("transactions").select("*").eq("person_id", id).order("transaction_date", { ascending: false }),
       supabase.from("currencies").select("*").order("is_base", { ascending: false }),
       supabase.from("people").select("id,name"),
       supabase.from("opening_balances").select("currency_id,amount,direction").eq("person_id", id),
+      supabase.from("company_profile").select("name,phone,address").maybeSingle(),
     ]);
     setName(person?.name ?? "");
     setPhone(person?.phone ?? null);
@@ -69,6 +71,7 @@ function PersonPage() {
     setCurrencies((c ?? []) as Currency[]);
     setPeople((p ?? []) as { id: string; name: string }[]);
     setOpenings((ob ?? []) as OpeningBalance[]);
+    setCompany((co as { name: string | null; phone: string | null; address: string | null } | null) ?? null);
     setLoading(false);
   };
 
@@ -136,18 +139,35 @@ function PersonPage() {
   };
 
   const buildShareText = () => {
-    const lines = [`📒 كشف حساب: ${name}`, ""];
-    for (const t of [...txs].sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime())) {
-      const cur = currencies.find((c) => c.id === t.currency_id)?.name ?? "";
-      const sign = t.direction === "credit" ? "+" : "-";
-      lines.push(`${fmtDate(t.transaction_date)} | ${sign}${fmtMoney(Number(t.amount))} ${cur}${t.details ? " — " + t.details : ""}`);
+    const companyName = company?.name?.trim() || "دفترك";
+    const today = new Date().toLocaleDateString("ar-EG");
+    const lines: string[] = [];
+    lines.push("السلام عليكم ورحمة الله وبركاته");
+    lines.push(`الأستاذ/ ${name} المحترم`);
+    lines.push("تحية طيبة وبعد،");
+    lines.push("");
+    lines.push(`نرفق لكم كشف حسابكم لدى *${companyName}* حتى تاريخ ${today}:`);
+    lines.push("");
+    // Per-currency summary lines — each currency shown SEPARATELY.
+    const nonZero = balancesByCurrency.filter((b) => Math.abs(b.balance) > 0.009 || b.txCount > 0);
+    if (nonZero.length === 0) {
+      lines.push("• لا توجد حركات مسجلة حالياً.");
+    } else {
+      for (const b of nonZero) {
+        const tag = b.balance >= 0 ? "له" : "عليه";
+        const amt = Math.abs(b.balance).toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        lines.push(`• ${b.currency.name}: ${amt} ${b.currency.symbol} (${tag})`);
+      }
     }
     lines.push("");
-    for (const b of balancesByCurrency) {
-      const tag = b.balance >= 0 ? "(له)" : "(عليه)";
-      lines.push(`${b.currency.name}: ${fmtMoney(Math.abs(b.balance))} ${b.currency.symbol} ${tag}`);
-    }
-    lines.push("— عبر تطبيق دفترك");
+    lines.push(`عدد الحركات: ${txs.length}`);
+    lines.push("");
+    lines.push("نرجو مراجعة الكشف، والتواصل معنا في حال وجود أي استفسار أو ملاحظة.");
+    lines.push("");
+    lines.push("مع خالص التقدير والاحترام،");
+    lines.push(companyName);
+    if (company?.phone) lines.push(`📞 ${company.phone}`);
+    if (company?.address) lines.push(company.address);
     return lines.join("\n");
   };
 
