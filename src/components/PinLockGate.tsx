@@ -18,7 +18,10 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
   const [pinHash, setPinHash] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(true);
   const [pin, setPin] = useState("");
-  const [attempts, setAttempts] = useState(0);
+  const [attempts, setAttempts] = useState(() => {
+    if (typeof localStorage === "undefined") return 0;
+    return Number(localStorage.getItem(ATTEMPTS_KEY) ?? "0") || 0;
+  });
   const [waitMs, setWaitMs] = useState(0);
   const [checking, setChecking] = useState(true);
   const autolockMin = useRef(5);
