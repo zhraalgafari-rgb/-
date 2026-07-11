@@ -11,6 +11,7 @@ interface Tx {
   details: string | null;
   due_date?: string | null;
   is_paid?: boolean;
+  allocations?: { allocated_amount: number }[];
 }
 interface Currency { id: string; name: string }
 
@@ -20,7 +21,7 @@ interface Props<T extends Tx = Tx> {
   running: Record<string, number>;
   onEdit: (t: T) => void;
   onDelete: (id: string) => void;
-  onTogglePaid?: (t: T) => void;
+  onPay?: (t: T) => void;
 }
 
 function dueState(due: string | null | undefined, is_paid?: boolean): "none" | "overdue" | "soon" | "paid" {
@@ -33,7 +34,7 @@ function dueState(due: string | null | undefined, is_paid?: boolean): "none" | "
   return "none";
 }
 
-export function TransactionTable<T extends Tx>({ txs, currencies, running, onEdit, onDelete, onTogglePaid }: Props<T>) {
+export function TransactionTable<T extends Tx>({ txs, currencies, running, onEdit, onDelete, onPay }: Props<T>) {
   return (
     <div className="rounded-xl border-2 border-border bg-card shadow-card overflow-hidden">
       <div className="overflow-x-auto">
@@ -60,6 +61,8 @@ export function TransactionTable<T extends Tx>({ txs, currencies, running, onEdi
                 ? "bg-danger-soft/40"
                 : credit ? "bg-success-soft/20" : "bg-danger-soft/15";
               const zebra = i % 2 === 0 ? "" : "bg-muted/30";
+              const totalAllocated = t.allocations?.reduce((s, a) => s + Number(a.allocated_amount), 0) ?? 0;
+              const isPartiallyPaid = totalAllocated > 0 && totalAllocated < t.amount;
               return (
                 <tr key={t.id} className={`${zebra} hover:bg-primary/5 transition-colors ${t.is_paid ? "opacity-60" : ""}`}>
                   <td className={`px-1.5 py-1.5 text-center border-b border-l border-border tabular-nums text-muted-foreground ${rowTint}`}>
@@ -75,6 +78,11 @@ export function TransactionTable<T extends Tx>({ txs, currencies, running, onEdi
                   </td>
                   <td className={`px-1.5 py-1.5 text-end border-b border-l border-border font-bold tabular-nums ${credit ? "text-success" : "text-danger"} ${t.is_paid ? "line-through" : ""}`}>
                     {credit ? "+" : "-"}{fmtMoney(Number(t.amount))}
+                    {isPartiallyPaid && (
+                      <div className="text-[9px] font-normal text-primary mt-0.5">
+                        مسدد {fmtMoney(totalAllocated)}
+                      </div>
+                    )}
                   </td>
                   <td className="px-1.5 py-1.5 text-center border-b border-l border-border text-[10px] text-muted-foreground font-semibold">
                     {cur?.name ?? "—"}
@@ -99,8 +107,8 @@ export function TransactionTable<T extends Tx>({ txs, currencies, running, onEdi
                   </td>
                   <td className="px-1 py-1.5 text-center border-b border-border">
                     <div className="inline-flex items-center gap-0.5">
-                      {t.due_date && onTogglePaid && (
-                        <button onClick={() => onTogglePaid(t)} aria-label="سداد" className={`p-1 rounded hover:bg-success/10 ${t.is_paid ? "text-success" : "text-muted-foreground"}`}>
+                      {onPay && !t.is_paid && (
+                        <button onClick={() => onPay(t)} aria-label="تسجيل سداد" className="p-1 rounded hover:bg-success/10 text-muted-foreground hover:text-success">
                           <CheckCircle2 className="size-3" />
                         </button>
                       )}

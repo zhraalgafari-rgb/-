@@ -12,14 +12,17 @@ import { toast } from "sonner";
 import { IconByName } from "@/components/IconByName";
 import { AmountInput } from "@/components/AmountInput";
 import { evalExpr } from "@/lib/calc";
+import { Wallet } from "lucide-react";
 
 interface Currency { id: string; name: string; is_base: boolean }
 interface Category { id: string; name: string; icon: string; color: string }
+interface Account { id: string; name: string; is_default: boolean }
 
 interface Editing {
   id: string;
   amount: number;
   category_id: string | null;
+  account_id?: string | null;
   currency_id: string;
   note: string | null;
   expense_date: string;
@@ -31,14 +34,16 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   currencies: Currency[];
   categories: Category[];
+  accounts?: Account[];
   editing?: Editing | null;
   onSuccess: () => void;
 }
 
-export function ExpenseDialog({ open, onOpenChange, currencies, categories, editing, onSuccess }: Props) {
+export function ExpenseDialog({ open, onOpenChange, currencies, categories, accounts = [], editing, onSuccess }: Props) {
   const { user } = useAuth();
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
+  const [accountId, setAccountId] = useState<string>("");
   const [currencyId, setCurrencyId] = useState<string>("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState("");
@@ -52,6 +57,7 @@ export function ExpenseDialog({ open, onOpenChange, currencies, categories, edit
     if (editing) {
       setAmount(String(editing.amount));
       setCategoryId(editing.category_id ?? "");
+      setAccountId(editing.account_id ?? "");
       setCurrencyId(editing.currency_id);
       setNote(editing.note ?? "");
       setDate(new Date(editing.expense_date).toISOString().slice(0, 16));
@@ -59,6 +65,7 @@ export function ExpenseDialog({ open, onOpenChange, currencies, categories, edit
     } else {
       setAmount(""); setNote("");
       setCategoryId(categories[0]?.id ?? "");
+      setAccountId(accounts?.find((a) => a.is_default)?.id ?? accounts?.[0]?.id ?? "");
       const base = currencies.find((c) => c.is_base) ?? currencies[0];
       setCurrencyId(base?.id ?? "");
       setDate(new Date().toISOString().slice(0, 16));
@@ -107,6 +114,7 @@ export function ExpenseDialog({ open, onOpenChange, currencies, categories, edit
       user_id: user.id,
       amount: amt,
       category_id: categoryId || null,
+      account_id: accountId || null,
       currency_id: currencyId,
       note: note.trim() || null,
       expense_date: new Date(date).toISOString(),
@@ -166,6 +174,27 @@ export function ExpenseDialog({ open, onOpenChange, currencies, categories, edit
           <div className="space-y-1.5">
             <Label>التاريخ</Label>
             <Input type="datetime-local" dir="ltr" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>المحفظة / الحساب</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger><SelectValue placeholder="اختر المحفظة" /></SelectTrigger>
+              <SelectContent>
+                {accounts.length === 0 ? (
+                  <SelectItem value="none" disabled>لا توجد محافظ</SelectItem>
+                ) : (
+                  accounts.map(a => (
+                    <SelectItem key={a.id} value={a.id}>
+                      <div className="flex items-center gap-2">
+                        <Wallet className="size-3.5 text-muted-foreground" />
+                        {a.name}
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">

@@ -23,15 +23,22 @@ function ArchivePage() {
   useEffect(() => { load(); }, [user]);
 
   const restore = async (id: string) => {
+    if (!user) return;
     await supabase.from("people").update({ is_archived: false }).eq("id", id);
+    const { logAudit } = await import("@/lib/audit");
+    const person = items.find((p) => p.id === id);
+    await logAudit(user.id, "restore", "person", id, { name: person?.name });
     toast.success("تمت الاستعادة"); load();
   };
   const del = async (id: string, name: string) => {
+    if (!user) return;
     if (!confirm(`حذف ${name} نهائياً؟ سيتم حذف كل معاملاته.`)) return;
     if (!confirm(`تأكيد نهائي: حذف ${name} وكل بياناته؟`)) return;
     await supabase.from("transactions").delete().eq("person_id", id);
     const { error } = await supabase.from("people").delete().eq("id", id);
     if (error) return toast.error(error.message);
+    const { logAudit } = await import("@/lib/audit");
+    await logAudit(user.id, "delete", "person", id, { name, from_archive: true });
     toast.success("تم الحذف"); load();
   };
 

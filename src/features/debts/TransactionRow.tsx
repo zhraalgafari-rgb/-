@@ -10,6 +10,7 @@ interface Tx {
   details: string | null;
   due_date?: string | null;
   is_paid?: boolean;
+  allocations?: { allocated_amount: number }[];
 }
 interface Currency { id: string; name: string }
 
@@ -19,7 +20,7 @@ interface Props {
   runningBalance: number;
   onEdit: () => void;
   onDelete: () => void;
-  onTogglePaid?: () => void;
+  onPay?: () => void;
 }
 
 function dueState(due: string | null | undefined, is_paid?: boolean): "none" | "overdue" | "soon" | "paid" {
@@ -32,9 +33,13 @@ function dueState(due: string | null | undefined, is_paid?: boolean): "none" | "
   return "none";
 }
 
-export function TransactionRow({ tx, currency, runningBalance, onEdit, onDelete, onTogglePaid }: Props) {
+export function TransactionRow({ tx, currency, runningBalance, onEdit, onDelete, onPay }: Props) {
   const credit = tx.direction === "credit";
   const state = dueState(tx.due_date, tx.is_paid);
+  
+  const totalAllocated = tx.allocations?.reduce((s, a) => s + Number(a.allocated_amount), 0) ?? 0;
+  const isPartiallyPaid = totalAllocated > 0 && totalAllocated < tx.amount;
+  
   return (
     <div className={`bg-card border rounded-xl p-2 shadow-card animate-in fade-in slide-in-from-bottom-1 ${state === "overdue" ? "border-danger/40" : ""}`}>
       <div className="flex items-start gap-2">
@@ -65,13 +70,18 @@ export function TransactionRow({ tx, currency, runningBalance, onEdit, onDelete,
               </span>
             </div>
           )}
+          {isPartiallyPaid && (
+            <div className="mt-1 text-[10px] font-medium text-primary">
+              تم سداد {fmtMoney(totalAllocated)} من {fmtMoney(tx.amount)}
+            </div>
+          )}
           <div className="flex items-center justify-between mt-1">
             <div className="text-[10px] text-muted-foreground">
               الرصيد: <span className="tabular-nums">{fmtMoney(Math.abs(runningBalance))}</span> {runningBalance >= 0 ? "له" : "عليه"}
             </div>
             <div className="flex gap-0.5 -my-1">
-              {tx.due_date && onTogglePaid && (
-                <button onClick={onTogglePaid} aria-label="تبديل السداد" className={`p-1 ${tx.is_paid ? "text-success" : "text-muted-foreground hover:text-success"}`}>
+              {onPay && !tx.is_paid && (
+                <button onClick={onPay} aria-label="تسجيل سداد" className="text-muted-foreground hover:text-success p-1">
                   <CheckCircle2 className="size-3" />
                 </button>
               )}

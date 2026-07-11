@@ -6,22 +6,24 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TrendingUp, TrendingDown, Check, ChevronDown, Paperclip, X, FileText, ImageIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Check, ChevronDown, Paperclip, X, FileText, ImageIcon, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/AmountInput";
 import { evalExpr } from "@/lib/calc";
 import { AttachmentsManager } from "@/components/AttachmentsManager";
+import { PersonSelector } from "@/components/PersonSelector";
 
 interface Person { id: string; name: string }
 interface Currency { id: string; name: string; is_base: boolean; rate?: number }
+interface Account { id: string; name: string; is_default: boolean }
 
 interface EditingTx {
   id: string;
   person_id: string;
+  account_id?: string | null;
   amount: number;
   direction: string;
   currency_id: string;
@@ -44,19 +46,20 @@ interface Props {
   currencies: Currency[];
   onSuccess: () => void;
   defaultPersonId?: string;
+  accounts?: Account[];
   editing?: EditingTx | null;
   prefill?: Prefill | null;
 }
 
-export function AddTransactionDialog({ open, onOpenChange, people, currencies, onSuccess, defaultPersonId, editing, prefill }: Props) {
+export function AddTransactionDialog({ open, onOpenChange, people, currencies, accounts = [], onSuccess, defaultPersonId, editing, prefill }: Props) {
   const { user } = useAuth();
   const [personId, setPersonId] = useState<string>("");
   const [newName, setNewName] = useState("");
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [currencyId, setCurrencyId] = useState<string>("");
+  const [accountId, setAccountId] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -72,6 +75,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
       setDetails(editing.details ?? "");
       setDirection(editing.direction as "credit" | "debit");
       setCurrencyId(editing.currency_id);
+      setAccountId(editing.account_id ?? "");
       setDate(new Date(editing.transaction_date).toISOString().slice(0, 16));
       setDueDate(editing.due_date ? editing.due_date.slice(0, 10) : "");
     } else {
@@ -90,6 +94,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
         setDirection("credit");
       }
       setCurrencyId(base?.id ?? "");
+      setAccountId(accounts?.find((a) => a.is_default)?.id ?? accounts?.[0]?.id ?? "");
       setDate(new Date().toISOString().slice(0, 16));
       setDueDate("");
     }
@@ -117,6 +122,7 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
         user_id: user.id,
         person_id: pid,
         currency_id: currencyId,
+        account_id: accountId || null,
         amount: amt,
         direction,
         details: details.trim() || null,
@@ -174,36 +180,14 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label>الشخص</Label>
-            {editing ? (
-              <Input value={selectedPerson?.name ?? ""} disabled />
-            ) : (
-              <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                    {selectedPerson ? selectedPerson.name : (newName || "اختر أو أضف اسماً جديداً")}
-                    <ChevronDown className="size-4 opacity-60" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="ابحث أو اكتب اسماً جديداً..." value={newName} onValueChange={(v) => { setNewName(v); setPersonId(""); }} />
-                    <CommandList>
-                      <CommandEmpty>
-                        <div className="text-sm">سيُنشأ شخص جديد باسم "{newName}"</div>
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {people.map((p) => (
-                          <CommandItem key={p.id} value={p.name} onSelect={() => { setPersonId(p.id); setNewName(""); setPickerOpen(false); }}>
-                            <Check className={`size-4 ${personId === p.id ? "opacity-100" : "opacity-0"}`} />
-                            {p.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            )}
+            <PersonSelector
+              people={people}
+              personId={personId}
+              setPersonId={setPersonId}
+              newName={newName}
+              setNewName={setNewName}
+              disabled={!!editing}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -231,6 +215,27 @@ export function AddTransactionDialog({ open, onOpenChange, people, currencies, o
               <Label>تاريخ الاستحقاق (اختياري)</Label>
               <Input type="date" dir="ltr" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>المحفظة / الحساب</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger><SelectValue placeholder="اختر المحفظة" /></SelectTrigger>
+              <SelectContent>
+                {accounts.length === 0 ? (
+                  <SelectItem value="none" disabled>لا توجد محافظ</SelectItem>
+                ) : (
+                  accounts.map(a => (
+                    <SelectItem key={a.id} value={a.id}>
+                      <div className="flex items-center gap-2">
+                        <Wallet className="size-3.5 text-muted-foreground" />
+                        {a.name}
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">

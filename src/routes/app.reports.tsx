@@ -24,81 +24,83 @@ function ReportsPage() {
   const [curs, setCurs] = useState<Cur[]>([]);
   const [cats, setCats] = useState<Cat[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
-  const [txs, setTxs] = useState<Tx[]>([]);
-  const [expenses, setExpenses] = useState<Exp[]>([]);
+  const [monthlyData, setMonthlyData] = useState<{ month: string; total: number }[]>([]);
+  const [topPeople, setTopPeople] = useState<{ id: string; name: string; net: number }[]>([]);
+  const [totals, setTotals] = useState({ owe: 0, owed: 0, net: 0 });
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5); sixMonthsAgo.setDate(1);
-      const [{ data: c }, { data: ca }, { data: p }, { data: t }, { data: e }] = await Promise.all([
+      const [{ data: c }, { data: p }, { data: catsData }, { data: rpcMonthly }, { data: rpcTop }, { data: rpcTotals }] = await Promise.all([
         supabase.from("currencies").select("*").order("is_base", { ascending: false }),
-        supabase.from("expense_categories").select("*"),
         supabase.from("people").select("id,name"),
-        supabase.from("transactions").select("*"),
-        supabase.from("expenses").select("*").gte("expense_date", sixMonthsAgo.toISOString()),
+        supabase.from("expense_categories").select("*"),
+        supabase.rpc("rpc_get_monthly_expenses"),
+        supabase.rpc("rpc_get_top_debtors", { p_limit: 8 }),
+        supabase.rpc("rpc_get_dashboard_totals"),
       ]);
-      setCurs((c ?? []) as Cur[]);
-      setCats((ca ?? []) as Cat[]);
+      const curList = (c ?? []) as Cur[];
+      setCurs(curList);
       setPeople((p ?? []) as Person[]);
-      setTxs((t ?? []) as Tx[]);
-      setExpenses((e ?? []) as Exp[]);
+      setCats((catsData ?? []) as Cat[]);
+
+      // Process monthly expenses from RPC
+      const toBase = (amt: number, cid: string) => amt * (curList.find((x) => x.id === cid)?.rate ?? 1);
+      
+      // Group by month
+      const mMap = new Map<string, number>();
+      (rpcMonthly ?? []).forEach((row: any) => {
+        const val = toBase(row.total, row.currency_id);
+        mMap.set(row.expense_month, (mMap.get(row.expense_month) ?? 0) + val);
+      });
+
+      // Format last 6 months strictly
+      const arr: { month: string; total: number }[] = [];
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const yyyy_mm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const disp = `${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
+        arr.push({ month: disp, total: Math.round(mMap.get(yyyy_mm) ?? 0) });
+      }
+      setMonthlyData(arr);
+
+      // Process top debtors from RPC
+      setTopPeople((rpcTop ?? []).map((row: any) => ({
+        id: row.person_id,
+        name: (p ?? []).find((x: any) => x.id === row.person_id)?.name ?? "—",
+        net: Number(row.net_base),
+      })));
+
+      if (rpcTotals && rpcTotals.length > 0) {
+        setTotals({
+          owe: Number(rpcTotals[0].total_owe),
+          owed: Number(rpcTotals[0].total_owed),
+          net: Number(rpcTotals[0].net_balance),
+        });
+      }
     })();
   }, [user]);
 
   const base = curs.find((c) => c.is_base) ?? curs[0];
-  const toBase = (a: number, cid: string) => Number(a) * (curs.find((x) => x.id === cid)?.rate ?? 1);
 
-  // Last 6 months expenses bar chart
-  const monthlyExpenses = useMemo(() => {
-    const arr: { month: string; total: number }[] = [];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const { start, end } = monthRange(d);
-      const total = expenses.filter((e) => {
-        const t = new Date(e.expense_date).getTime();
-        return t >= start.getTime() && t < end.getTime();
-      }).reduce((s, e) => s + toBase(e.amount, e.currency_id), 0);
-      arr.push({ month: `${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`, total: Math.round(total) });
-    }
-    return arr;
-  }, [expenses, curs]);
-
-  // Top debtors
-  const topPeople = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const t of txs) {
-      const sign = t.direction === "credit" ? 1 : -1;
-      m.set(t.person_id, (m.get(t.person_id) ?? 0) + toBase(t.amount, t.currency_id) * sign);
-    }
-    return Array.from(m.entries())
-      .map(([id, net]) => ({ id, name: people.find((p) => p.id === id)?.name ?? "—", net }))
-      .filter((x) => Math.abs(x.net) > 0.01)
-      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net))
-      .slice(0, 8);
-  }, [txs, people, curs]);
-
-  const totals = useMemo(() => {
-    let owe = 0, owed = 0;
-    for (const t of txs) {
-      const v = toBase(t.amount, t.currency_id);
-      if (t.direction === "credit") owed += v; else owe += v;
-    }
-    return { owe, owed, net: owed - owe };
-  }, [txs, curs]);
-
-  const exportCSV = () => {
+  const exportCSV = async () => {
+    toast.loading("جارِ التصدير...");
+    const [{ data: t }, { data: e }] = await Promise.all([
+      supabase.from("transactions").select("*").order("transaction_date", { ascending: false }),
+      supabase.from("expenses").select("*").order("expense_date", { ascending: false }),
+    ]);
+    toast.dismiss();
     const rows = [["نوع","تاريخ","المبلغ","العملة","شخص/تصنيف","ملاحظة"]];
-    for (const t of txs) {
-      const cur = curs.find((c) => c.id === t.currency_id)?.name ?? "";
-      const person = people.find((p) => p.id === t.person_id)?.name ?? "";
-      rows.push([t.direction === "credit" ? "له" : "عليه", fmtDate(t.transaction_date), String(t.amount), cur, person, ""]);
+    for (const tx of (t ?? [])) {
+      const cur = curs.find((c) => c.id === tx.currency_id)?.name ?? "";
+      const person = people.find((p) => p.id === tx.person_id)?.name ?? "";
+      rows.push([tx.direction === "credit" ? "له" : "عليه", fmtDate(tx.transaction_date), String(tx.amount), cur, person, tx.details ?? ""]);
     }
-    for (const e of expenses) {
-      const cur = curs.find((c) => c.id === e.currency_id)?.name ?? "";
-      const cat = cats.find((c) => c.id === e.category_id)?.name ?? "";
-      rows.push(["مصروف", fmtDate(e.expense_date), String(e.amount), cur, cat, e.note ?? ""]);
+    for (const ex of (e ?? [])) {
+      const cur = curs.find((c) => c.id === ex.currency_id)?.name ?? "";
+      const cat = cats.find((c) => c.id === ex.category_id)?.name ?? "";
+      rows.push(["مصروف", fmtDate(ex.expense_date), String(ex.amount), cur, cat, ex.note ?? ""]);
     }
     const csv = "\uFEFF" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -152,7 +154,7 @@ function ReportsPage() {
             <h3 className="font-semibold text-sm mb-3">آخر 6 أشهر</h3>
             <div className="h-48">
               <ResponsiveContainer>
-                <BarChart data={monthlyExpenses}>
+                <BarChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis dataKey="month" fontSize={11} />
                   <YAxis fontSize={11} />
@@ -167,7 +169,7 @@ function ReportsPage() {
             <h3 className="font-semibold text-sm mb-3">اتجاه المصاريف</h3>
             <div className="h-40">
               <ResponsiveContainer>
-                <LineChart data={monthlyExpenses}>
+                <LineChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis dataKey="month" fontSize={11} />
                   <YAxis fontSize={11} />

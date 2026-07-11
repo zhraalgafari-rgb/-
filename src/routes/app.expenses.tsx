@@ -21,6 +21,7 @@ interface Expense { id: string; amount: number; category_id: string | null; curr
 interface Category { id: string; name: string; icon: string; color: string }
 interface Currency { id: string; name: string; rate: number; is_base: boolean }
 interface Budget { id: string; category_id: string | null; amount: number; currency_id: string }
+interface Account { id: string; name: string; is_default: boolean }
 
 function ExpensesPage() {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ function ExpensesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -40,16 +42,18 @@ function ExpensesPage() {
     if (!user) return;
     setLoading(true);
     const { start, end } = monthRange(month);
-    const [{ data: e }, { data: c }, { data: cu }, { data: b }] = await Promise.all([
+    const [{ data: e }, { data: c }, { data: cu }, { data: b }, { data: acc }] = await Promise.all([
       supabase.from("expenses").select("*").gte("expense_date", start.toISOString()).lt("expense_date", end.toISOString()).order("expense_date", { ascending: false }),
       supabase.from("expense_categories").select("*").order("sort_order"),
       supabase.from("currencies").select("*").order("is_base", { ascending: false }),
       supabase.from("budgets").select("*"),
+      supabase.from("financial_accounts").select("*").order("is_default", { ascending: false }),
     ]);
     setExpenses((e ?? []) as Expense[]);
     setCategories((c ?? []) as Category[]);
     setCurrencies((cu ?? []) as Currency[]);
     setBudgets((b ?? []) as Budget[]);
+    setAccounts((acc ?? []) as Account[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, [user, month]);
@@ -151,6 +155,7 @@ function ExpensesPage() {
         onOpenChange={setOpen}
         currencies={currencies}
         categories={categories}
+        accounts={accounts}
         editing={editing}
         onSuccess={load}
       />

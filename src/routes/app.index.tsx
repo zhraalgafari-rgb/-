@@ -53,44 +53,49 @@ function DebtsHome() {
     if (!user) return;
     setLoading(true);
     await processDueRecurring(user.id);
-    const [{ data: p }, { data: t }, { data: c }] = await Promise.all([
+    const [{ data: p }, { data: dbBalances }, { data: rpcTotals }, { data: c }] = await Promise.all([
       supabase.from("people").select("*").eq("is_archived", false).order("created_at", { ascending: false }),
-      supabase.from("transactions").select("*"),
+      supabase.from("view_dashboard_person_balances" as any).select("*"),
+      supabase.rpc("rpc_get_dashboard_totals" as any),
       supabase.from("currencies").select("*").order("is_base", { ascending: false }),
     ]);
+    
+    // Instead of computing manually, just use the backend response!
+    const map = new Map<string, PersonBalance>();
+    if (dbBalances) {
+      for (const row of dbBalances as any[]) {
+        map.set(row.person_id, {
+          net: row.net,
+          count: row.tx_count,
+          lastDate: new Date(row.last_date).getTime(),
+          lastAmount: row.last_amount,
+          lastDirection: row.last_direction,
+          totalCredit: row.total_credit,
+          totalDebit: row.total_debit,
+        });
+      }
+    }
+    
     setPeople((p ?? []) as Person[]);
-    setTxs((t ?? []) as Tx[]);
     setCurrencies((c ?? []) as Currency[]);
+    setRpcTotalsData((rpcTotals ?? []) as any[]);
     setLoading(false);
+    
+    // Since we no longer fetch all txs, pass an empty array to txs state, 
+    // or fetch ONLY the recent ones if needed. For now we skip txs.
+    setTxs([]); 
+    
+    // Hack to attach personBalances to state so filtered hook works
+    setPersonBalancesState(map);
   };
 
   useEffect(() => { load(); }, [user]);
   const pullDist = usePullToRefresh(load);
-
   const baseCurrency = currencies.find((c) => c.is_base) ?? currencies[0];
 
-  const personBalances = useMemo(() => {
-    const map = new Map<string, PersonBalance>();
-    for (const t of txs) {
-      const cur = currencies.find((c) => c.id === t.currency_id);
-      const rate = cur?.rate ?? 1;
-      const sign = t.direction === "credit" ? 1 : -1;
-      const dateMs = new Date(t.transaction_date).getTime();
-      const amt = Number(t.amount) * rate;
-      const prev = map.get(t.person_id) ?? { net: 0, count: 0, lastDate: 0, lastAmount: 0, lastDirection: "", totalCredit: 0, totalDebit: 0 };
-      const isLater = dateMs >= prev.lastDate;
-      map.set(t.person_id, {
-        net: prev.net + amt * sign,
-        count: prev.count + 1,
-        lastDate: Math.max(prev.lastDate, dateMs),
-        lastAmount: isLater ? amt : prev.lastAmount,
-        lastDirection: isLater ? t.direction : prev.lastDirection,
-        totalCredit: (prev.totalCredit ?? 0) + (t.direction === "credit" ? amt : 0),
-        totalDebit: (prev.totalDebit ?? 0) + (t.direction === "debit" ? amt : 0),
-      });
-    }
-    return map;
-  }, [txs, currencies]);
+  const [personBalancesState, setPersonBalancesState] = useState<Map<string, PersonBalance>>(new Map());
+  const [rpcTotalsData, setRpcTotalsData] = useState<any[]>([]);
+  const personBalances = personBalancesState;
 
   const totals = useMemo(() => {
     let owe = 0, owed = 0;
@@ -137,7 +142,7 @@ function DebtsHome() {
         onFilterChange={setFilter}
       />
 
-      <MultiCurrencyTotals txs={txs} currencies={currencies} />
+      <MultiCurrencyTotals rpcTotals={rpcTotalsData} currencies={currencies} />
 
       <div className="flex items-center gap-1.5">
         <div className="flex-1"><SearchBar value={q} onChange={setQ} placeholder="ابحث عن شخص..." /></div>

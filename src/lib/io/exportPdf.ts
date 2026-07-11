@@ -74,23 +74,23 @@ async function ensureArabicFontLoaded() {
 }
 
 const C = {
-  primary: "#1d4ed8",
-  primarySoft: "#dbeafe",
-  accent: "#059669",
-  accentSoft: "#d1fae5",
-  danger: "#dc2626",
+  primary: "#0f172a",       // Dark slate for a premium look
+  primarySoft: "#f1f5f9",   // Light slate
+  accent: "#16a34a",        // Green
+  accentSoft: "#dcfce7",
+  danger: "#ef4444",        // Red
   dangerSoft: "#fee2e2",
-  text: "#111827",
-  muted: "#6b7280",
-  border: "#e5e7eb",
-  bgAlt: "#f9fafb",
+  text: "#334155",          // Slate 700
+  muted: "#64748b",         // Slate 500
+  border: "#e2e8f0",        // Slate 200
+  bgAlt: "#f8fafc",         // Slate 50
   white: "#ffffff",
 };
 
-function statusFor(closing: number): { label: string; bg: string } {
-  if (closing > 0) return { label: "رصيد لكم (له عندك)", bg: C.accent };
-  if (closing < 0) return { label: "رصيد عليكم", bg: C.danger };
-  return { label: "مسددة بالكامل", bg: C.muted };
+function statusFor(closing: number): { label: string; bg: string; color: string } {
+  if (closing > 0) return { label: "الرصيد الإجمالي لكم (دائن)", bg: C.accentSoft, color: C.accent };
+  if (closing < 0) return { label: "الرصيد الإجمالي عليكم (مدين)", bg: C.dangerSoft, color: C.danger };
+  return { label: "الرصيد مسدد بالكامل", bg: C.primarySoft, color: C.text };
 }
 
 export async function exportPersonStatementPDF(opts: {
@@ -149,12 +149,12 @@ export async function exportPersonStatementPDF(opts: {
     if (open !== 0) {
       rows.push(`
         <tr style="background:${C.primarySoft};">
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:center;">—</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:center;">0</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:right;font-weight:700;">رصيد افتتاحي</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;color:${C.accent};font-weight:700;">${open > 0 ? fmt(Math.abs(open)) : "—"}</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;color:${C.danger};font-weight:700;">${open < 0 ? fmt(Math.abs(open)) : "—"}</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;font-weight:700;">${fmt(open)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:center;color:${C.muted};">—</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:center;color:${C.muted};">0</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:right;font-weight:700;">رصيد افتتاحي</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:left;color:${C.accent};font-weight:700;">${open > 0 ? fmt(Math.abs(open)) : "—"}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:left;color:${C.danger};font-weight:700;">${open < 0 ? fmt(Math.abs(open)) : "—"}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:left;font-weight:800;">${fmt(open)}</td>
         </tr>`);
     }
 
@@ -166,12 +166,12 @@ export async function exportPersonStatementPDF(opts: {
       const desc = t.details ?? (t.direction === "credit" ? "دائن" : "مدين");
       rows.push(`
         <tr style="background:${zebra};">
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:center;white-space:nowrap;">${dmy(t.transaction_date)}</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:center;">${i + 1}</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:right;">${esc(desc)}</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;color:${C.accent};font-weight:700;white-space:nowrap;">${t.direction === "credit" ? fmt(amt) : "—"}</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;color:${C.danger};font-weight:700;white-space:nowrap;">${t.direction === "debit"  ? fmt(amt) : "—"}</td>
-          <td style="padding:6px 8px;border:1px solid ${C.border};text-align:left;font-weight:700;white-space:nowrap;">${fmt(acc)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:center;white-space:nowrap;">${dmy(t.transaction_date)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:center;color:${C.muted};">${i + 1}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:right;color:${C.text};">${esc(desc)}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:left;color:${C.accent};font-weight:700;white-space:nowrap;">${t.direction === "credit" ? fmt(amt) : "—"}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:left;color:${C.danger};font-weight:700;white-space:nowrap;">${t.direction === "debit"  ? fmt(amt) : "—"}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid ${C.border};text-align:left;font-weight:800;white-space:nowrap;color:${C.primary};">${fmt(acc)}</td>
         </tr>`);
     });
 
@@ -179,109 +179,112 @@ export async function exportPersonStatementPDF(opts: {
     const st = statusFor(closing);
 
     return `
-      <section style="margin-top:14px;page-break-inside:auto;">
-        <div style="background:${C.primary};color:#fff;padding:8px 12px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-weight:700;font-size:13px;">${esc(cur.name)} <span style="opacity:.85;">(${esc(cur.symbol)})</span></div>
-          <div style="font-size:11px;opacity:.9;">قسم العملة</div>
+      <section style="margin-top:24px;page-break-inside:avoid;border:1px solid ${C.border};border-radius:12px;overflow:hidden;">
+        <!-- Table Header -->
+        <div style="background:${C.primary};color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;">
+            <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:4px;font-size:12px;">عملة الكشف</span>
+            ${esc(cur.name)} (${esc(cur.symbol)})
+          </div>
         </div>
-        <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:auto;">
+        
+        <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:auto;">
           <thead>
-            <tr style="background:${C.primary};color:#fff;">
-              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:center;width:78px;">التاريخ</th>
-              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:center;width:30px;">#</th>
-              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:right;">البيان / الوصف</th>
-              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:left;width:90px;">دائن (له)</th>
-              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:left;width:90px;">مدين (عليه)</th>
-              <th style="padding:7px 8px;border:1px solid ${C.primary};text-align:left;width:100px;">الرصيد (${esc(cur.symbol)})</th>
+            <tr style="background:${C.primarySoft};color:${C.text};border-bottom:2px solid ${C.border};">
+              <th style="padding:10px 12px;text-align:center;width:80px;font-weight:700;">التاريخ</th>
+              <th style="padding:10px 12px;text-align:center;width:40px;font-weight:700;">#</th>
+              <th style="padding:10px 12px;text-align:right;font-weight:700;">البيان / الوصف</th>
+              <th style="padding:10px 12px;text-align:left;width:100px;font-weight:700;">دائن (لكم)</th>
+              <th style="padding:10px 12px;text-align:left;width:100px;font-weight:700;">مدين (عليكم)</th>
+              <th style="padding:10px 12px;text-align:left;width:110px;font-weight:800;">الرصيد (${esc(cur.symbol)})</th>
             </tr>
           </thead>
           <tbody>${rows.join("")}</tbody>
           <tfoot>
-            <tr style="background:${C.bgAlt};font-weight:700;">
-              <td colspan="3" style="padding:7px 8px;border:1px solid ${C.border};text-align:right;">الإجماليات</td>
-              <td style="padding:7px 8px;border:1px solid ${C.border};text-align:left;color:${C.accent};">${fmt(cCredit)}</td>
-              <td style="padding:7px 8px;border:1px solid ${C.border};text-align:left;color:${C.danger};">${fmt(cDebit)}</td>
-              <td style="padding:7px 8px;border:1px solid ${C.border};text-align:left;">${fmt(closing)}</td>
+            <tr style="background:${C.bgAlt};border-top:2px solid ${C.border};">
+              <td colspan="3" style="padding:12px;text-align:right;font-weight:800;color:${C.muted};">إجمالي الحركات</td>
+              <td style="padding:12px;text-align:left;color:${C.accent};font-weight:800;">${fmt(cCredit)}</td>
+              <td style="padding:12px;text-align:left;color:${C.danger};font-weight:800;">${fmt(cDebit)}</td>
+              <td style="padding:12px;text-align:left;font-weight:800;"></td>
             </tr>
           </tfoot>
         </table>
-        <div style="background:${st.bg};color:#fff;padding:8px 12px;border-radius:0 0 6px 6px;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-weight:700;font-size:12px;">${st.label}</div>
-          <div style="font-weight:800;font-size:13px;">${fmt(Math.abs(closing))} ${esc(cur.symbol)}</div>
+
+        <!-- Final Balance Highlight -->
+        <div style="background:${st.bg};padding:16px 20px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid ${C.border};">
+          <div style="font-weight:700;font-size:14px;color:${st.color};">${st.label}</div>
+          <div style="font-weight:900;font-size:18px;color:${st.color};">${fmt(Math.abs(closing))} ${esc(cur.symbol)}</div>
         </div>
       </section>`;
   }).join("");
 
   const periodLabel = (dateFrom || dateTo)
-    ? `الفترة: ${dateFrom ? dmy(dateFrom) : "—"} ← ${dateTo ? dmy(dateTo) : "—"}`
+    ? `من: ${dateFrom ? dmy(dateFrom) : "بداية السجلات"}  إلى: ${dateTo ? dmy(dateTo) : "تاريخ اليوم"}`
     : "";
 
   const html = `
     <div id="__statement_root" dir="rtl" lang="ar" style="
-      width: 794px; padding: 28px; background: #fff; color: ${C.text};
-      font-family: 'Tajawal','Cairo','Noto Sans Arabic','IBM Plex Sans Arabic','Segoe UI',Arial,sans-serif;
-      font-size: 12px; line-height: 1.55; -webkit-font-smoothing: antialiased;">
+      width: 794px; min-height: 1122px; padding: 40px; background: #fff; color: ${C.text};
+      font-family: 'Tajawal','Cairo',Arial,sans-serif;
+      font-size: 13px; line-height: 1.6; -webkit-font-smoothing: antialiased; box-sizing: border-box;">
 
-      <!-- Brand header -->
-      <div style="background:${C.primary};color:#fff;padding:14px 16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          ${logo ? `<img src="${logo}" style="width:48px;height:48px;border-radius:8px;background:#fff;object-fit:contain;padding:3px;" crossorigin="anonymous" />` : ""}
+      <!-- Professional Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid ${C.primary};padding-bottom:20px;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:16px;">
+          ${logo ? `<img src="${logo}" style="width:64px;height:64px;border-radius:12px;object-fit:contain;border:1px solid ${C.border};padding:4px;" crossorigin="anonymous" />` : ""}
           <div>
-            <div style="font-size:18px;font-weight:800;">${esc(company?.name) || "دفترك"}</div>
-            <div style="font-size:10.5px;opacity:.9;margin-top:2px;">
-              ${[company?.phone && `هاتف: ${esc(company.phone)}`, company?.email && esc(company.email), company?.tax_number && `الرقم الضريبي: ${esc(company.tax_number)}`].filter(Boolean).join("  •  ")}
+            <div style="font-size:24px;font-weight:900;color:${C.primary};letter-spacing:-0.5px;">${esc(company?.name) || "دفترك"}</div>
+            ${company?.address ? `<div style="font-size:12px;color:${C.muted};margin-top:4px;">${esc(company.address)}</div>` : ""}
+            <div style="font-size:12px;color:${C.muted};margin-top:2px;display:flex;gap:12px;">
+              ${company?.phone ? `<span>📞 ${esc(company.phone)}</span>` : ""}
+              ${company?.email ? `<span>✉️ ${esc(company.email)}</span>` : ""}
             </div>
-            ${company?.address ? `<div style="font-size:10.5px;opacity:.85;margin-top:2px;">${esc(company.address)}</div>` : ""}
+            ${company?.tax_number ? `<div style="font-size:12px;color:${C.muted};margin-top:2px;">الرقم الضريبي: ${esc(company.tax_number)}</div>` : ""}
           </div>
         </div>
         <div style="text-align:left;">
-          <div style="font-size:16px;font-weight:800;">كشف حساب</div>
-          <div style="font-size:10.5px;opacity:.9;">Statement of Account</div>
-          <div style="font-size:10.5px;opacity:.9;margin-top:3px;">التاريخ: ${dmy(new Date())}</div>
+          <div style="font-size:28px;font-weight:900;color:${C.primary};text-transform:uppercase;letter-spacing:1px;">كشف حساب</div>
+          <div style="font-size:14px;color:${C.muted};font-weight:700;margin-top:4px;">STATEMENT OF ACCOUNT</div>
+          <div style="margin-top:12px;background:${C.primarySoft};padding:6px 12px;border-radius:6px;display:inline-block;border:1px solid ${C.border};">
+            <div style="font-size:11px;color:${C.muted};font-weight:700;">تاريخ الإصدار</div>
+            <div style="font-size:13px;font-weight:800;color:${C.primary};">${dmy(new Date())}</div>
+          </div>
         </div>
       </div>
 
-      <!-- Customer box -->
-      <div style="margin-top:12px;background:${C.primarySoft};border:1px solid ${C.primary};border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="font-size:10.5px;color:${C.muted};">العميل</div>
-          <div style="font-size:14px;font-weight:800;">${esc(personName)}</div>
+      <!-- Customer & Period Info Box -->
+      <div style="display:flex;gap:16px;margin-bottom:24px;">
+        <div style="flex:2;background:${C.bgAlt};border:1px solid ${C.border};border-radius:8px;padding:16px;">
+          <div style="font-size:11px;color:${C.muted};font-weight:700;text-transform:uppercase;">تفاصيل العميل</div>
+          <div style="font-size:18px;font-weight:900;color:${C.primary};margin-top:4px;">${esc(personName)}</div>
+          ${phone ? `<div style="font-size:13px;color:${C.text};margin-top:4px;direction:ltr;text-align:right;">${esc(phone)} 📞</div>` : ""}
         </div>
-        ${phone ? `<div style="text-align:left;">
-          <div style="font-size:10.5px;color:${C.muted};">رقم الهاتف</div>
-          <div style="font-size:13px;font-weight:700;direction:ltr;">${esc(phone)}</div>
-        </div>` : ""}
-      </div>
-
-      ${periodLabel ? `<div style="margin-top:8px;font-size:10.5px;color:${C.muted};font-style:italic;">${periodLabel}</div>` : ""}
-
-      <!-- KPIs -->
-      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div style="border:1px solid ${C.border};background:${C.accentSoft};border-radius:6px;padding:8px 10px;">
-          <div style="font-size:10px;color:${C.muted};">إجمالي الدائن (${esc(baseSym)})</div>
-          <div style="font-size:14px;font-weight:800;color:${C.accent};margin-top:2px;">${fmt(totalCredit)}</div>
-        </div>
-        <div style="border:1px solid ${C.border};background:${C.dangerSoft};border-radius:6px;padding:8px 10px;">
-          <div style="font-size:10px;color:${C.muted};">إجمالي المدين (${esc(baseSym)})</div>
-          <div style="font-size:14px;font-weight:800;color:${C.danger};margin-top:2px;">${fmt(totalDebit)}</div>
-        </div>
-        <div style="border:1px solid ${C.border};background:${C.primarySoft};border-radius:6px;padding:8px 10px;">
-          <div style="font-size:10px;color:${C.muted};">عدد المعاملات</div>
-          <div style="font-size:14px;font-weight:800;color:${C.primary};margin-top:2px;">${fmtInt(filteredTxs.length)}</div>
+        <div style="flex:1;background:${C.bgAlt};border:1px solid ${C.border};border-radius:8px;padding:16px;display:flex;flex-direction:column;justify-content:center;">
+          <div style="font-size:11px;color:${C.muted};font-weight:700;text-transform:uppercase;">فترة الكشف</div>
+          <div style="font-size:13px;font-weight:800;color:${C.primary};margin-top:4px;">${periodLabel || "تاريخ مفتوح"}</div>
+          <div style="font-size:11px;color:${C.muted};margin-top:8px;">إجمالي الحركات: <strong style="color:${C.primary};">${fmtInt(filteredTxs.length)}</strong></div>
         </div>
       </div>
 
-      ${sections || `<div style="margin-top:20px;padding:24px;text-align:center;color:${C.muted};border:1px dashed ${C.border};border-radius:6px;">لا توجد معاملات ضمن الفترة المحددة</div>`}
+      <!-- Sections -->
+      ${sections || `<div style="margin-top:32px;padding:40px;text-align:center;color:${C.muted};border:2px dashed ${C.border};border-radius:12px;background:${C.bgAlt};font-size:15px;font-weight:700;">لا توجد معاملات مسجلة في هذه الفترة</div>`}
 
+      <!-- Footer Notes -->
       ${company?.notes ? `
-        <div style="margin-top:14px;padding:10px 12px;border:1px solid ${C.border};border-radius:6px;background:${C.bgAlt};">
-          <div style="font-size:10.5px;color:${C.muted};font-weight:700;margin-bottom:4px;">ملاحظات</div>
-          <div style="font-size:11px;white-space:pre-wrap;">${esc(company.notes)}</div>
+        <div style="margin-top:32px;padding:16px;border:1px solid ${C.border};border-radius:8px;background:${C.bgAlt};border-right:4px solid ${C.primary};">
+          <div style="font-size:12px;color:${C.primary};font-weight:800;margin-bottom:6px;">ملاحظات هامة</div>
+          <div style="font-size:12px;color:${C.text};white-space:pre-wrap;line-height:1.6;">${esc(company.notes)}</div>
         </div>` : ""}
 
-      <div style="margin-top:18px;border-top:1px solid ${C.border};padding-top:8px;display:flex;justify-content:space-between;color:${C.muted};font-size:10px;">
-        <div>تم إنشاء هذا الكشف بواسطة دفترك  •  Daftarak</div>
-        <div>${new Date().toLocaleString("ar-EG")}</div>
+      <!-- Bottom Signature & Branding -->
+      <div style="margin-top:48px;padding-top:16px;border-top:1px solid ${C.border};display:flex;justify-content:space-between;align-items:center;color:${C.muted};font-size:11px;">
+        <div>
+          <span>صدر بواسطة نظام <strong>دفترك</strong> للإدارة المالية</span>
+        </div>
+        <div style="text-align:left;">
+          <div>توقيع / ختم المنشأة</div>
+          <div style="margin-top:24px;border-bottom:1px dashed ${C.muted};width:150px;"></div>
+        </div>
       </div>
     </div>`;
 

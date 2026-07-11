@@ -12,6 +12,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.12",
     "@ai-sdk/openai-compatible": "^3.0.0",
     "@cloudflare/vite-plugin": "^1.25.5",
     "@lovable.dev/cloud-auth-js": "^1.1.2",
@@ -66,6 +67,6 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^7.3.1"
+    "vite": "^7.3.6"
   }
 }

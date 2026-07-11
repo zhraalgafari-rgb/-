@@ -3,7 +3,7 @@ import { TransactionTable } from "@/features/debts/TransactionTable";
 import { fmtMonthAr } from "@/lib/format";
 
 interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
-interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string; details: string | null; due_date: string | null; is_paid: boolean }
+interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string; details: string | null; due_date: string | null; is_paid: boolean; allocations?: { allocated_amount: number }[] }
 
 interface Props {
   txs: Tx[];
@@ -11,10 +11,10 @@ interface Props {
   running: Record<string, number>;
   onEdit: (t: Tx) => void;
   onDelete: (id: string) => void;
-  onTogglePaid: (t: Tx) => void;
+  onPay: (t: Tx) => void;
 }
 
-export function PersonTimeline({ txs, currencies, running, onEdit, onDelete, onTogglePaid }: Props) {
+export function PersonTimeline({ txs, currencies, running, onEdit, onDelete, onPay }: Props) {
   const grouped = useMemo(() => {
     const g = new Map<string, Tx[]>();
     for (const t of txs) {
@@ -44,7 +44,7 @@ export function PersonTimeline({ txs, currencies, running, onEdit, onDelete, onT
             running={running}
             onEdit={onEdit}
             onDelete={onDelete}
-            onTogglePaid={onTogglePaid}
+            onPay={onPay}
           />
         </div>
       ))}

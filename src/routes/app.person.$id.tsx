@@ -21,13 +21,18 @@ import { AiReminderDialog } from "@/components/ai/AiReminderDialog";
 import { CustomerHealthCard } from "@/components/CustomerHealthCard";
 import { PersonAnalytics } from "@/features/debts/person/PersonAnalytics";
 import { CustomerAttachments } from "@/features/attachments/CustomerAttachments";
-import { computeBalancesByCurrency, computeRunningByCurrency, type OpeningBalance } from "@/lib/money/balances";
+import { PaymentDialog } from "@/features/debts/PaymentDialog";
+import { buildShareText } from "@/lib/money/statements";
+import { EditPersonDialog } from "@/features/debts/person/EditPersonDialog";
+import type { PerCurrencyBalance, CurrencyLite, OpeningBalance } from "@/lib/money/balances";
+import { computeRunningByCurrency } from "@/lib/money/balances";
 import { ClipboardList, Paperclip, BarChart3 } from "lucide-react";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
 interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
-interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string; details: string | null; due_date: string | null; is_paid: boolean }
+interface Account { id: string; name: string; currency_id: string; is_default: boolean }
+interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string; details: string | null; due_date: string | null; is_paid: boolean; allocations?: { allocated_amount: number }[] }
 
 function PersonPage() {
   const { id } = useParams({ from: "/app/person/$id" });
@@ -36,16 +41,17 @@ function PersonPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState<string | null>(null);
   const [editName, setEditName] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  const [draftPhone, setDraftPhone] = useState("");
   const [txs, setTxs] = useState<Tx[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [openings, setOpenings] = useState<OpeningBalance[]>([]);
+  const [rpcBalances, setRpcBalances] = useState<any[]>([]);
   const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
   const [company, setCompany] = useState<{ name: string | null; phone: string | null; address: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
   const [editingTx, setEditingTx] = useState<Tx | null>(null);
+  const [payingTx, setPayingTx] = useState<Tx | null>(null);
   const [delTxId, setDelTxId] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDelPerson, setConfirmDelPerson] = useState(false);
@@ -55,35 +61,54 @@ function PersonPage() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const [{ data: person }, { data: t }, { data: c }, { data: p }, { data: ob }, { data: co }] = await Promise.all([
+    const [{ data: person }, { data: t }, { data: c }, { data: p }, { data: ob }, { data: co }, { data: rpcB }, { data: acc }] = await Promise.all([
       supabase.from("people").select("name,phone").eq("id", id).single(),
-      supabase.from("transactions").select("*").eq("person_id", id).order("transaction_date", { ascending: false }),
+      supabase.from("transactions").select("*, allocations:payment_allocations!debt_tx_id(allocated_amount)").eq("person_id", id).order("transaction_date", { ascending: false }),
       supabase.from("currencies").select("*").order("is_base", { ascending: false }),
       supabase.from("people").select("id,name"),
       supabase.from("opening_balances").select("currency_id,amount,direction").eq("person_id", id),
       supabase.from("company_profile").select("name,phone,address").maybeSingle(),
+      supabase.rpc("rpc_get_person_balances" as any, { p_person_id: id }),
+      supabase.from("financial_accounts").select("*").order("is_default", { ascending: false }),
     ]);
     setName(person?.name ?? "");
     setPhone(person?.phone ?? null);
-    setDraftName(person?.name ?? "");
-    setDraftPhone(person?.phone ?? "");
     setTxs((t ?? []) as Tx[]);
     setCurrencies((c ?? []) as Currency[]);
+    setAccounts((acc ?? []) as Account[]);
     setPeople((p ?? []) as { id: string; name: string }[]);
     setOpenings((ob ?? []) as OpeningBalance[]);
     setCompany((co as { name: string | null; phone: string | null; address: string | null } | null) ?? null);
+    setRpcBalances((rpcB ?? []) as any[]);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, [user, id]);
 
-  const balancesByCurrency = useMemo(
-    () => computeBalancesByCurrency(txs, currencies, openings),
-    [txs, currencies, openings],
-  );
+  // Build per-currency balances from backend RPC (includes opening balances)
+  const balancesByCurrency = useMemo(() => {
+    if (rpcBalances.length === 0) {
+      // Fallback to frontend calculation if RPC not available
+      return computeBalancesByCurrency(txs, currencies, openings);
+    }
+    return rpcBalances
+      .map((rb: any) => {
+        const currency = currencies.find((c) => c.id === rb.currency_id);
+        if (!currency) return null;
+        return {
+          currency,
+          balance: Number(rb.net),
+          txCount: Number(rb.tx_count),
+          opening: Number(rb.opening_net),
+          baseEquivalent: Number(rb.net) * (currency.rate || 1),
+        };
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => Number(b.currency.is_base) - Number(a.currency.is_base));
+  }, [rpcBalances, currencies, txs, openings]);
 
   // Used by AI reminder dialog — pick base currency balance (or first available)
-  const primaryBalance = balancesByCurrency.find((b) => b.currency.is_base) ?? balancesByCurrency[0];
+  const primaryBalance = (balancesByCurrency as any[]).find((b) => b.currency.is_base) ?? (balancesByCurrency as any[])[0];
   const balanceForActions = primaryBalance?.balance ?? 0;
 
   const running = useMemo(
@@ -98,12 +123,14 @@ function PersonPage() {
     const { error } = await supabase.from("transactions").delete().eq("id", delTxId);
     if (error) { toast.error(error.message); return; }
     setDelTxId(null);
+    const { logAudit } = await import("@/lib/audit");
+    await logAudit(user!.id, "delete", "transaction", delTxId, { person_id: id });
     toast.success("تم الحذف", {
       action: tx ? {
         label: "تراجع",
         onClick: async () => {
-          const { id: _id, ...rest } = tx;
-          await supabase.from("transactions").insert({ ...rest, user_id: user?.id ?? "" } as never);
+          const { id: _id, allocations: _alloc, ...rest } = tx as any;
+          await supabase.from("transactions").insert({ ...rest } as never);
           toast.success("تم الاسترجاع"); load();
         },
       } : undefined,
@@ -111,16 +138,11 @@ function PersonPage() {
     load();
   };
 
-  const togglePaid = async (tx: Tx) => {
-    const { error } = await supabase.from("transactions").update({ is_paid: !tx.is_paid }).eq("id", tx.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(tx.is_paid ? "تم إلغاء السداد" : "تم تأكيد السداد");
-    load();
-  };
-
   const archivePerson = async () => {
     const { error } = await supabase.from("people").update({ is_archived: true }).eq("id", id);
     if (error) { toast.error(error.message); return; }
+    const { logAudit } = await import("@/lib/audit");
+    await logAudit(user!.id, "archive", "person", id, { name });
     toast.success("تمت الأرشفة"); nav({ to: "/app" });
   };
 
@@ -128,58 +150,20 @@ function PersonPage() {
     if (txs.length > 0) { toast.error("استخدم الأرشفة بدلاً من الحذف — لديه معاملات"); return; }
     const { error } = await supabase.from("people").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
+    const { logAudit } = await import("@/lib/audit");
+    await logAudit(user!.id, "delete", "person", id, { name });
     toast.success("تم الحذف"); nav({ to: "/app" });
   };
 
-  const saveName = async () => {
-    if (!draftName.trim()) { toast.error("الاسم مطلوب"); return; }
-    const { error } = await supabase.from("people").update({ name: draftName.trim(), phone: draftPhone.trim() || null }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("تم الحفظ"); setEditName(false); load();
-  };
-
-  const buildShareText = () => {
-    const companyName = company?.name?.trim() || "دفترك";
-    const today = new Date().toLocaleDateString("ar-EG");
-    const lines: string[] = [];
-    lines.push("السلام عليكم ورحمة الله وبركاته");
-    lines.push(`الأستاذ/ ${name} المحترم`);
-    lines.push("تحية طيبة وبعد،");
-    lines.push("");
-    lines.push(`نرفق لكم كشف حسابكم لدى *${companyName}* حتى تاريخ ${today}:`);
-    lines.push("");
-    // Per-currency summary lines — each currency shown SEPARATELY.
-    const nonZero = balancesByCurrency.filter((b) => Math.abs(b.balance) > 0.009 || b.txCount > 0);
-    if (nonZero.length === 0) {
-      lines.push("• لا توجد حركات مسجلة حالياً.");
-    } else {
-      for (const b of nonZero) {
-        const tag = b.balance >= 0 ? "له" : "عليه";
-        const amt = Math.abs(b.balance).toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        lines.push(`• ${b.currency.name}: ${amt} ${b.currency.symbol} (${tag})`);
-      }
-    }
-    lines.push("");
-    lines.push(`عدد الحركات: ${txs.length}`);
-    lines.push("");
-    lines.push("نرجو مراجعة الكشف، والتواصل معنا في حال وجود أي استفسار أو ملاحظة.");
-    lines.push("");
-    lines.push("مع خالص التقدير والاحترام،");
-    lines.push(companyName);
-    if (company?.phone) lines.push(`📞 ${company.phone}`);
-    if (company?.address) lines.push(company.address);
-    return lines.join("\n");
-  };
-
   const share = async () => {
-    const text = buildShareText();
+    const text = buildShareText({ personName: name, company, txsCount: txs.length, balancesByCurrency });
     if (navigator.share) { try { await navigator.share({ title: `كشف حساب ${name}`, text }); return; } catch { /* ignore */ } }
     await navigator.clipboard.writeText(text);
     toast.success("تم نسخ الكشف للحافظة");
   };
 
   const shareWhatsApp = () => {
-    const text = encodeURIComponent(buildShareText());
+    const text = encodeURIComponent(buildShareText({ personName: name, company, txsCount: txs.length, balancesByCurrency }));
     const p = phone ? phone.replace(/\D/g, "") : "";
     window.open(p ? `https://wa.me/${p}?text=${text}` : `https://wa.me/?text=${text}`, "_blank");
   };
@@ -232,7 +216,7 @@ function PersonPage() {
             txs={txs} currencies={currencies} running={running}
             onEdit={(t) => { setEditingTx(t); setOpenAdd(true); }}
             onDelete={(id) => setDelTxId(id)}
-            onTogglePaid={togglePaid}
+            onPay={(t) => setPayingTx(t)}
           />
         )
       )}
@@ -259,8 +243,16 @@ function PersonPage() {
       <AddTransactionDialog
         open={openAdd}
         onOpenChange={(v) => { setOpenAdd(v); if (!v) setEditingTx(null); }}
-        people={people} currencies={currencies}
+        people={people} currencies={currencies} accounts={accounts}
         onSuccess={load} defaultPersonId={id} editing={editingTx}
+      />
+
+      <PaymentDialog
+        open={!!payingTx}
+        onOpenChange={(v) => !v && setPayingTx(null)}
+        debtTx={payingTx}
+        accounts={accounts}
+        onSuccess={load}
       />
 
       <AiReminderDialog
@@ -271,16 +263,14 @@ function PersonPage() {
         phone={phone}
       />
 
-      <Dialog open={editName} onOpenChange={setEditName}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle className="text-right">تعديل البيانات</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="الاسم" maxLength={80} />
-            <Input value={draftPhone} onChange={(e) => setDraftPhone(e.target.value)} placeholder="رقم الجوال (اختياري)" dir="ltr" maxLength={30} />
-            <Button onClick={saveName} className="w-full bg-gradient-primary text-primary-foreground">حفظ</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <EditPersonDialog
+        open={editName}
+        onOpenChange={setEditName}
+        personId={id}
+        initialName={name}
+        initialPhone={phone}
+        onSuccess={load}
+      />
 
       <ConfirmDialog open={!!delTxId} onOpenChange={(v) => !v && setDelTxId(null)} title="حذف المعاملة" description="لا يمكن التراجع عن هذا الإجراء." destructive confirmLabel="حذف" onConfirm={delTx} />
       <ConfirmDialog open={confirmArchive} onOpenChange={setConfirmArchive} title={`أرشفة ${name}؟`} description="يمكن استعادة الشخص من صفحة الأرشيف لاحقاً." confirmLabel="أرشفة" onConfirm={archivePerson} />

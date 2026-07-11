@@ -48,7 +48,7 @@ export function SmartAddDialog({ open, onOpenChange, onParsed }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="text-right flex items-center gap-1.5"><Wand2 className="size-4 text-primary" /> إضافة ذكية</DialogTitle>
         </DialogHeader>

@@ -2,20 +2,38 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
-const MODEL = "google/gemini-3-flash-preview";
+function getModel() {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+
+  if (geminiKey) {
+    const google = createGoogleGenerativeAI({ apiKey: geminiKey });
+    return google("gemini-2.5-flash");
+  }
+  
+  if (openRouterKey) {
+    const openRouter = createOpenAICompatible({
+      name: "openrouter",
+      apiKey: openRouterKey,
+      baseURL: "https://openrouter.ai/api/v1",
+    });
+    return openRouter("google/gemini-2.5-flash");
+  }
+
+  throw new Error("تأكد من إضافة مفاتيح الذكاء الاصطناعي (Gemini أو OpenRouter)");
+}
 
 /** Parse free-form Arabic text into a structured transaction draft. */
 export const parseDebtText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ text: z.string().min(2).max(500) }).parse(d))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI غير متاح حالياً");
-    const gateway = createLovableAiGatewayProvider(key);
+    const model = getModel();
     const { output } = await generateText({
-      model: gateway(MODEL),
+      model,
       output: Output.object({
         schema: z.object({
           person_name: z.string().describe("اسم الشخص فقط"),
@@ -43,12 +61,10 @@ export const generateReminderMessage = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("AI غير متاح حالياً");
-    const gateway = createLovableAiGatewayProvider(key);
+    const model = getModel();
     const toneAr = data.tone === "firm" ? "حازمة ومحترمة" : data.tone === "friendly" ? "ودية وغير رسمية" : "مهذبة ورسمية";
     const { text } = await generateText({
-      model: gateway(MODEL),
+      model,
       system: `أنت كاتب رسائل عربية احترافية. اكتب رسالة واتساب ${toneAr} لتذكير شخص بدفع مبلغ مستحق. قواعد: 3-5 أسطر، بدون رموز كثيرة، بدون توقيع، ابدأ بالسلام أو تحية مناسبة. استخدم اللهجة الفصحى السهلة.`,
       prompt: `الاسم: ${data.person_name}\nالمبلغ: ${data.amount} ${data.currency ?? ""}\n${data.days_overdue ? `تأخر ${data.days_overdue} يوم` : ""}`,
     });

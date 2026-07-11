@@ -4,7 +4,7 @@ import { aggregateOwedOwePerCurrency, type MoneyTx } from "@/lib/money/balances"
 import { BalanceCard } from "@/components/common/BalanceCard";
 
 interface Props {
-  txs: MoneyTx[];
+  rpcTotals: any[];
   currencies: CurrencyLite[];
 }
 
@@ -12,8 +12,16 @@ interface Props {
  * Global per-currency balance cards. 2-per-row, interactive (tap to expand).
  * Each currency stays strictly separate.
  */
-export function MultiCurrencyTotals({ txs, currencies }: Props) {
-  const rows = aggregateOwedOwePerCurrency(txs, currencies);
+export function MultiCurrencyTotals({ rpcTotals, currencies }: Props) {
+  // Map rpcTotals to the rows format
+  const rows = (rpcTotals || [])
+    .map((rt) => {
+      const c = currencies.find(x => x.id === rt.currency_id);
+      if (!c) return null;
+      return { currency: c, owed: Number(rt.total_owed || 0), owe: Number(rt.total_owe || 0) };
+    })
+    .filter(Boolean) as { currency: CurrencyLite; owed: number; owe: number }[];
+    
   if (rows.length === 0) return null;
 
   return (

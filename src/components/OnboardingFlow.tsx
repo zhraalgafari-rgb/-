@@ -58,29 +58,46 @@ export function OnboardingFlow({ onDone }: Props) {
     if (!user) return;
     setBusy(true);
     try {
-      // Set base currency
-      if (baseId) {
+      let finalBaseId = baseId;
+
+      // If user has no currencies, seed default currencies
+      if (!currencies.length) {
+        const { data: newCurrencies, error: currErr } = await supabase.from("currencies").insert([
+          { user_id: user.id, name: "ريال سعودي", symbol: "SAR", is_base: true },
+          { user_id: user.id, name: "ريال يمني", symbol: "YER", is_base: false }
+        ]).select();
+        
+        if (currErr) throw new Error(currErr.message);
+        if (newCurrencies && newCurrencies.length > 0) {
+          finalBaseId = newCurrencies[0].id;
+        }
+      } else if (finalBaseId) {
+        // Set base currency from user selection
         await supabase.from("currencies").update({ is_base: false }).eq("user_id", user.id);
-        await supabase.from("currencies").update({ is_base: true }).eq("id", baseId);
+        const { error: updErr } = await supabase.from("currencies").update({ is_base: true }).eq("id", finalBaseId);
+        if (updErr) throw new Error(updErr.message);
       }
+
       // Save name + mark onboarded
-      await supabase.from("profiles").upsert({
+      const { error: profErr } = await supabase.from("profiles").upsert({
         user_id: user.id,
         display_name: name.trim() || null,
         onboarded: true,
       }, { onConflict: "user_id" });
+
+      if (profErr) throw new Error(profErr.message);
+
       toast.success("جاهز للانطلاق! 🎉");
       onDone();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "خطأ";
+      const msg = e instanceof Error ? e.message : "خطأ غير معروف";
       toast.error(msg);
-    } finally {
       setBusy(false);
     }
   };
 
   const isLast = step === SLIDES.length;
-  const canNext = !isLast || (baseId && true);
+  const canNext = !isLast || currencies.length === 0 || (baseId && true);
 
   return (
     <div className="fixed inset-0 z-[90] bg-gradient-hero text-white flex flex-col">

@@ -39,8 +39,13 @@ function AppLayout() {
     // Defer heavy backend sync until the browser is idle so navigation feels instant.
     const idle = (cb: () => void) =>
       (window as any).requestIdleCallback?.(cb, { timeout: 2000 }) ?? setTimeout(cb, 1200);
-    const handle = idle(() => {
-      syncRemindersFn().catch(() => null);
+    const handle = idle(async () => {
+      try {
+        await supabase.rpc("get_or_create_default_account", { p_user_id: user.id });
+        await syncRemindersFn();
+      } catch (e) {
+        // ignore errors in background sync
+      }
       pollAndNotify(user.id);
     });
     const t = setInterval(load, 5 * 60 * 1000);
