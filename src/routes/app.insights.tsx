@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Sparkles, ArrowRight, TrendingUp, TrendingDown, AlertCircle, Trophy, Calendar } from "lucide-react";
 import { fmtMoney, fmtMonthAr, monthRange } from "@/lib/format";
@@ -9,45 +10,45 @@ import { CardSkeleton } from "@/components/Skeleton";
 import { KpiCard } from "@/features/insights/KpiCard";
 import { SpendingHeatmap } from "@/features/insights/SpendingHeatmap";
 import { BudgetSnapshot } from "@/features/insights/BudgetSnapshot";
+import { useCurrencies } from "@/hooks/useCurrencies";
+import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 
 export const Route = createFileRoute("/app/insights")({ component: InsightsPage });
 
-interface Cur { id: string; name: string; rate: number; is_base: boolean }
-interface Cat { id: string; name: string; color: string }
 interface Exp { amount: number; category_id: string | null; currency_id: string; expense_date: string }
 interface Bud { amount: number; currency_id: string }
 
 function InsightsPage() {
   const { user } = useAuth();
-  const [curs, setCurs] = useState<Cur[]>([]);
-  const [cats, setCats] = useState<Cat[]>([]);
+  const [loading, setLoading] = useState(true);
   const [thisMonth, setThisMonth] = useState<Exp[]>([]);
   const [lastMonth, setLastMonth] = useState<Exp[]>([]);
   const [budgets, setBudgets] = useState<Bud[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
+  const { data: curs = [] } = useCurrencies();
+  const { data: cats = [] } = useExpenseCategories();
+
+  useQuery({
+    queryKey: ["insights", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
       setLoading(true);
       const now = new Date();
       const cur = monthRange(now);
       const prev = monthRange(new Date(now.getFullYear(), now.getMonth() - 1, 1));
-      const [{ data: c }, { data: ca }, { data: t }, { data: l }, { data: b }] = await Promise.all([
-        supabase.from("currencies").select("*").order("is_base", { ascending: false }),
-        supabase.from("expense_categories").select("id,name,color"),
+      const [{ data: t }, { data: l }, { data: b }] = await Promise.all([
         supabase.from("expenses").select("amount,category_id,currency_id,expense_date").gte("expense_date", cur.start.toISOString()).lt("expense_date", cur.end.toISOString()),
         supabase.from("expenses").select("amount,category_id,currency_id,expense_date").gte("expense_date", prev.start.toISOString()).lt("expense_date", prev.end.toISOString()),
         supabase.from("budgets").select("amount,currency_id"),
       ]);
-      setCurs((c ?? []) as Cur[]);
-      setCats((ca ?? []) as Cat[]);
       setThisMonth((t ?? []) as Exp[]);
       setLastMonth((l ?? []) as Exp[]);
       setBudgets((b ?? []) as Bud[]);
       setLoading(false);
-    })();
-  }, [user]);
+      return null;
+    },
+    enabled: !!user,
+  });
 
   const base = curs.find((c) => c.is_base) ?? curs[0];
   const toBase = (a: number, cid: string) => Number(a) * (curs.find((c) => c.id === cid)?.rate ?? 1);

@@ -16,20 +16,27 @@ const Ctx = createContext<AuthCtx | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+    let cancelled = false;
+    (async () => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+        if (cancelled) return;
+        setSession(s);
+        setUser(s?.user ?? null);
+        setInitializing(false);
+      });
+      const { data: { session: s } } = await supabase.auth.getSession();
+      if (cancelled) return;
       setSession(s);
       setUser(s?.user ?? null);
-      setLoading(false);
-    });
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
-    return () => subscription.unsubscribe();
+      setInitializing(false);
+      return () => {
+        cancelled = true;
+        subscription.unsubscribe();
+      };
+    })();
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -45,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   const signOut = async () => { await supabase.auth.signOut(); };
 
-  return <Ctx.Provider value={{ user, session, loading, signIn, signUp, signOut }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, session, loading: initializing, signIn, signUp, signOut }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {
@@ -53,3 +60,4 @@ export function useAuth() {
   if (!c) throw new Error("useAuth must be inside AuthProvider");
   return c;
 }
+

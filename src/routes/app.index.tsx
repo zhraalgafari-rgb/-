@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useDeferredValue, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Plus, UserPlus, Users, Sparkles, Loader2, LayoutGrid, Table as TableIcon } from "lucide-react";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
-import { SmartAddDialog, type ParsedDraft } from "@/components/ai/SmartAddDialog";
+import { AiChatPanel } from "@/components/ai/AiChatPanel";
 import { PersonFormDialog, type PersonEditing } from "@/components/PersonFormDialog";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ListSkeleton } from "@/components/Skeleton";
@@ -19,12 +19,12 @@ import { PersonRow, type PersonBalance } from "@/features/debts/PersonRow";
 import { PersonTable } from "@/features/debts/PersonTable";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/app/")({ component: DebtsHome });
 
 interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
 interface Person { id: string; name: string; type: string; is_archived: boolean; avatar_color: string | null; phone: string | null; notes?: string | null; credit_limit?: number | null }
-interface Tx { id: string; person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string }
 
 type Filter = "all" | "credit" | "debit";
 type Sort = "active" | "name" | "recent";
@@ -32,70 +32,75 @@ type ViewMode = "cards" | "table";
 
 function DebtsHome() {
   const { user } = useAuth();
-  const [people, setPeople] = useState<Person[]>([]);
-  const [txs, setTxs] = useState<Tx[]>([]);
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [q, setQ] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
-  const [openSmart, setOpenSmart] = useState(false);
+  const [openAiChat, setOpenAiChat] = useState(false);
   const [openPerson, setOpenPerson] = useState(false);
   const [editingPerson, setEditingPerson] = useState<PersonEditing | null>(null);
   const [delPerson, setDelPerson] = useState<Person | null>(null);
   const [archivePerson, setArchivePerson] = useState<Person | null>(null);
-  const [prefill, setPrefill] = useState<ParsedDraft | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("active");
   const [view, setView] = useState<ViewMode>(() => (typeof localStorage !== "undefined" && (localStorage.getItem("people_view") as ViewMode)) || "cards");
   useEffect(() => { try { localStorage.setItem("people_view", view); } catch { /* ignore */ } }, [view]);
 
-  const load = async () => {
-    if (!user) return;
-    setLoading(true);
-    await processDueRecurring(user.id);
-    const [{ data: p }, { data: dbBalances }, { data: rpcTotals }, { data: c }] = await Promise.all([
-      supabase.from("people").select("*").eq("is_archived", false).order("created_at", { ascending: false }),
-      supabase.from("view_dashboard_person_balances" as any).select("*"),
-      supabase.rpc("rpc_get_dashboard_totals" as any),
-      supabase.from("currencies").select("*").order("is_base", { ascending: false }),
-    ]);
-    
-    // Instead of computing manually, just use the backend response!
-    const map = new Map<string, PersonBalance>();
-    if (dbBalances) {
-      for (const row of dbBalances as any[]) {
-        map.set(row.person_id, {
-          net: row.net,
-          count: row.tx_count,
-          lastDate: new Date(row.last_date).getTime(),
-          lastAmount: row.last_amount,
-          lastDirection: row.last_direction,
-          totalCredit: row.total_credit,
-          totalDebit: row.total_debit,
-        });
+  const deferredQ = useDeferredValue(q);
+  const [visibleCount, setVisibleCount] = useState(30);
+
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [deferredQ, filter, sort]);
+
+  const { data, isLoading: loading, refetch } = useQuery({
+    queryKey: ["dashboard", user?.id],
+    queryFn: async () => {
+      // Fire-and-forget background recurring process
+      if (user) processDueRecurring(user.id).catch(console.error);
+
+      const [{ data: p }, { data: dbBalances }, { data: c }] = await Promise.all([
+        supabase.from("people").select("*").eq("is_archived", false).order("created_at", { ascending: false }),
+        supabase.from("view_dashboard_person_balances" as any).select("*"),
+        supabase.from("currencies").select("*").order("is_base", { ascending: false }),
+      ]);
+
+      // RPC may not exist in all environments — fail silently
+      const rpcResult = await supabase.rpc("rpc_get_dashboard_totals" as any).then(r => r.data).catch(() => null);
+      const rpcTotals = rpcResult ?? [];
+      
+      const map = new Map<string, PersonBalance>();
+      if (dbBalances) {
+        for (const row of dbBalances as any[]) {
+          map.set(row.person_id, {
+            net: row.net,
+            count: row.tx_count,
+            lastDate: new Date(row.last_date).getTime(),
+            lastAmount: row.last_amount,
+            lastDirection: row.last_direction,
+            totalCredit: row.total_credit,
+            totalDebit: row.total_debit,
+          });
+        }
       }
-    }
-    
-    setPeople((p ?? []) as Person[]);
-    setCurrencies((c ?? []) as Currency[]);
-    setRpcTotalsData((rpcTotals ?? []) as any[]);
-    setLoading(false);
-    
-    // Since we no longer fetch all txs, pass an empty array to txs state, 
-    // or fetch ONLY the recent ones if needed. For now we skip txs.
-    setTxs([]); 
-    
-    // Hack to attach personBalances to state so filtered hook works
-    setPersonBalancesState(map);
-  };
 
-  useEffect(() => { load(); }, [user]);
-  const pullDist = usePullToRefresh(load);
+      return {
+        people: (p ?? []) as Person[],
+        personBalances: map,
+        rpcTotals: rpcTotals as any[],
+        currencies: (c ?? []) as Currency[],
+      };
+    },
+    enabled: !!user,
+  });
+
+  const pullDist = usePullToRefresh(() => refetch());
+
+  const people = data?.people ?? [];
+  const personBalances = data?.personBalances ?? new Map<string, PersonBalance>();
+  const rpcTotalsData = data?.rpcTotals ?? [];
+  const currencies = data?.currencies ?? [];
+  
   const baseCurrency = currencies.find((c) => c.is_base) ?? currencies[0];
-
-  const [personBalancesState, setPersonBalancesState] = useState<Map<string, PersonBalance>>(new Map());
-  const [rpcTotalsData, setRpcTotalsData] = useState<any[]>([]);
-  const personBalances = personBalancesState;
 
   const totals = useMemo(() => {
     let owe = 0, owed = 0;
@@ -105,9 +110,10 @@ function DebtsHome() {
     return { owe, owed };
   }, [personBalances]);
 
+
   const filtered = useMemo(() => {
     const list = people.filter((p) => {
-      if (q && !p.name.toLowerCase().includes(q.toLowerCase())) return false;
+      if (deferredQ && !p.name.toLowerCase().includes(deferredQ.toLowerCase())) return false;
       const b = personBalances.get(p.id);
       if (filter === "credit") return (b?.net ?? 0) > 0.001;
       if (filter === "debit") return (b?.net ?? 0) < -0.001;
@@ -123,7 +129,22 @@ function DebtsHome() {
       const bActive = Math.abs(bb?.net ?? 0);
       return bActive - aActive;
     });
-  }, [people, q, filter, sort, personBalances]);
+  }, [people, deferredQ, filter, sort, personBalances]);
+
+
+  const visibleList = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setVisibleCount((prev) => Math.min(prev + 30, filtered.length));
+      }
+    }, { rootMargin: "400px" });
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [filtered.length]);
 
   return (
     <div className="space-y-3 animate-in fade-in duration-300">
@@ -137,7 +158,7 @@ function DebtsHome() {
         owe={totals.owe}
         baseName={baseCurrency?.name ?? "محلي"}
         peopleCount={people.length}
-        txCount={txs.length}
+        txCount={0}
         filter={filter}
         onFilterChange={setFilter}
       />
@@ -202,7 +223,7 @@ function DebtsHome() {
         )
       ) : view === "table" ? (
         <PersonTable
-          rows={filtered.map((p) => ({
+          rows={visibleList.map((p) => ({
             person: p,
             balance: personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0, totalCredit: 0, totalDebit: 0 },
           }))}
@@ -212,12 +233,11 @@ function DebtsHome() {
         />
       ) : (
         <div className="space-y-2">
-          {filtered.map((p, i) => (
+          {visibleList.map((p, i) => (
             <PersonRow
               key={p.id}
               person={p}
               balance={personBalances.get(p.id) ?? { net: 0, count: 0, lastDate: 0 }}
-              index={i}
               onEdit={() => { setEditingPerson({ id: p.id, name: p.name, phone: p.phone, type: p.type, notes: p.notes ?? null, avatar_color: p.avatar_color, credit_limit: p.credit_limit ?? null }); setOpenPerson(true); }}
               onArchive={() => setArchivePerson(p)}
               onDelete={() => setDelPerson(p)}
@@ -226,7 +246,23 @@ function DebtsHome() {
         </div>
       )}
 
-      {/* Add new customer button (floating, above the smart add) */}
+      {visibleList.length > 0 && visibleList.length < filtered.length && (
+        <div ref={loadMoreRef} className="h-20 flex items-center justify-center text-muted-foreground pb-20">
+          <Loader2 className="size-5 animate-spin" />
+        </div>
+      )}
+
+      {/* AI Chat floating button */}
+      <button
+        onClick={() => setOpenAiChat(true)}
+        aria-label="المساعد الذكي"
+        className="fixed bottom-36 left-4 z-20 size-12 rounded-full shadow-glow flex items-center justify-center hover:scale-110 active:scale-95 transition-transform overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)" }}
+      >
+        <Sparkles className="size-5 text-white" />
+      </button>
+
+      {/* Add new customer button */}
       <button
         onClick={() => { setEditingPerson(null); setOpenPerson(true); }}
         aria-label="إضافة عميل جديد"
@@ -235,36 +271,24 @@ function DebtsHome() {
         <UserPlus className="size-4" />
       </button>
 
-      <button
-        onClick={() => setOpenSmart(true)}
-        aria-label="إضافة ذكية"
-        className="fixed bottom-36 left-4 z-20 size-11 rounded-full bg-card border-2 border-primary text-primary shadow-elevated flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-      >
-        <Sparkles className="size-4" />
-      </button>
+      <FabButton onClick={() => { setOpenAdd(true); }} label="إضافة معاملة" />
 
-      <FabButton onClick={() => { setPrefill(null); setOpenAdd(true); }} label="إضافة معاملة" />
-
-      <SmartAddDialog
-        open={openSmart}
-        onOpenChange={setOpenSmart}
-        onParsed={(d) => { setPrefill(d); setOpenAdd(true); }}
-      />
+      <AiChatPanel open={openAiChat} onClose={() => setOpenAiChat(false)} />
 
       <AddTransactionDialog
         open={openAdd}
-        onOpenChange={(v) => { setOpenAdd(v); if (!v) setPrefill(null); }}
+        onOpenChange={setOpenAdd}
         people={people}
         currencies={currencies}
-        onSuccess={load}
-        prefill={prefill}
+        onSuccess={() => refetch()}
       />
+
 
       <PersonFormDialog
         open={openPerson}
         onOpenChange={(v) => { setOpenPerson(v); if (!v) setEditingPerson(null); }}
         editing={editingPerson}
-        onSuccess={() => load()}
+        onSuccess={() => refetch()}
       />
 
       <ConfirmDialog
@@ -277,7 +301,7 @@ function DebtsHome() {
           if (!archivePerson) return;
           const { error } = await supabase.from("people").update({ is_archived: true }).eq("id", archivePerson.id);
           if (error) { toast.error(error.message); return; }
-          toast.success("تمت الأرشفة"); load();
+          toast.success("تمت الأرشفة"); refetch();
         }}
       />
 
@@ -294,9 +318,10 @@ function DebtsHome() {
           if ((count ?? 0) > 0) { toast.error("لا يمكن الحذف — لديه معاملات. استخدم الأرشفة."); return; }
           const { error } = await supabase.from("people").delete().eq("id", delPerson.id);
           if (error) { toast.error(error.message); return; }
-          toast.success("تم الحذف"); load();
+          toast.success("تم الحذف"); refetch();
         }}
       />
     </div>
   );
 }
+

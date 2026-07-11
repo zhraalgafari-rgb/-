@@ -8,21 +8,27 @@ import { ModuleTabs } from "@/components/common/ModuleTabs";
 import { BadgeCount } from "@/components/common/BadgeCount";
 import { GlobalSearchDialog } from "@/components/GlobalSearchDialog";
 import { useTheme } from "@/lib/theme";
-import { fetchPending, pollAndNotify } from "@/lib/notifications";
+import { usePendingCount } from "@/hooks/usePendingCount";
 import { syncRemindersFn } from "@/lib/jobs.functions";
 import { registerServiceWorker } from "@/lib/push";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
+let swRegistered = false;
 function AppLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [pending, setPending] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { data: pending } = usePendingCount();
   const { theme, set: setTheme } = useTheme();
   const isDark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
 
-  useEffect(() => { registerServiceWorker(); }, []);
+  useEffect(() => {
+    if (!swRegistered) {
+      registerServiceWorker();
+      swRegistered = true;
+    }
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -30,28 +36,17 @@ function AppLayout() {
 
   useEffect(() => {
     if (!user) return;
-    let cancelled = false;
-    const load = async () => {
-      const items = await fetchPending(user.id);
-      if (!cancelled) setPending(items.length);
-    };
-    load();
-    // Defer heavy backend sync until the browser is idle so navigation feels instant.
     const idle = (cb: () => void) =>
       (window as any).requestIdleCallback?.(cb, { timeout: 2000 }) ?? setTimeout(cb, 1200);
     const handle = idle(async () => {
       try {
-        await supabase.rpc("get_or_create_default_account", { p_user_id: user.id });
+        await (supabase.rpc as any)("get_or_create_default_account", { p_user_id: user.id });
         await syncRemindersFn();
       } catch (e) {
         // ignore errors in background sync
       }
-      pollAndNotify(user.id);
     });
-    const t = setInterval(load, 5 * 60 * 1000);
     return () => {
-      cancelled = true;
-      clearInterval(t);
       (window as any).cancelIdleCallback?.(handle);
     };
   }, [user]);
@@ -83,9 +78,9 @@ function AppLayout() {
             </button>
             <Link to="/app/notifications" className="relative p-1.5 rounded-md hover:bg-white/10 transition-colors" aria-label="الإشعارات">
               <Bell className="size-3.5" />
-              {pending > 0 && (
+              {(pending ?? 0) > 0 && (
                 <span className="absolute top-0 right-0">
-                  <BadgeCount count={pending} tone="danger" />
+                  <BadgeCount count={pending ?? 0} tone="danger" />
                 </span>
               )}
             </Link>

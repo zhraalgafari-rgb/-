@@ -1,13 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { Users, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
 
 export function ModuleTabs() {
   const loc = useLocation();
   const { user } = useAuth();
-  const [counts, setCounts] = useState({ people: 0, expenses: 0 });
 
   const isExpenses =
     loc.pathname.startsWith("/app/expenses") ||
@@ -20,14 +19,20 @@ export function ModuleTabs() {
     loc.pathname.startsWith("/app/archive")
   );
 
-  useEffect(() => {
-    if (!user) return;
-    const start = new Date(); start.setDate(1); start.setHours(0,0,0,0);
-    Promise.all([
-      supabase.from("people").select("id", { count: "exact", head: true }).eq("is_archived", false),
-      supabase.from("expenses").select("id", { count: "exact", head: true }).gte("expense_date", start.toISOString()),
-    ]).then(([p, e]) => setCounts({ people: p.count ?? 0, expenses: e.count ?? 0 }));
-  }, [user, loc.pathname]);
+  const { data } = useQuery({
+    queryKey: ["moduleTabsCounts", user?.id],
+    queryFn: async () => {
+      const start = new Date(); start.setDate(1); start.setHours(0,0,0,0);
+      const [p, e] = await Promise.all([
+        supabase.from("people").select("id", { count: "exact", head: true }).eq("is_archived", false),
+        supabase.from("expenses").select("id", { count: "exact", head: true }).gte("expense_date", start.toISOString()),
+      ]);
+      return { people: p.count ?? 0, expenses: e.count ?? 0 };
+    },
+    enabled: !!user,
+  });
+
+  const counts = data ?? { people: 0, expenses: 0 };
 
   if (!isDebts && !isExpenses) return null;
 

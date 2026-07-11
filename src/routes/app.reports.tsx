@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,79 +11,83 @@ import { fmtMoney, fmtDate, monthRange } from "@/lib/format";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { useCurrencies } from "@/hooks/useCurrencies";
+import { useExpenseCategories } from "@/hooks/useExpenseCategories";
+import { useAllPeople } from "@/hooks/usePeople";
 
 export const Route = createFileRoute("/app/reports")({ component: ReportsPage });
 
-interface Cur { id: string; name: string; rate: number; is_base: boolean }
-interface Cat { id: string; name: string; color: string }
 interface Person { id: string; name: string }
-interface Tx { person_id: string; amount: number; direction: string; currency_id: string; transaction_date: string }
-interface Exp { amount: number; category_id: string | null; currency_id: string; expense_date: string; note: string | null }
+interface MonthlyRow { expense_month: string; total: number; currency_id: string }
+interface TopDebtorRow { person_id: string; net_base: number }
+interface TotalsRow { total_owe: number; total_owed: number; net_balance: number }
 
 function ReportsPage() {
   const { user } = useAuth();
-  const [curs, setCurs] = useState<Cur[]>([]);
-  const [cats, setCats] = useState<Cat[]>([]);
-  const [people, setPeople] = useState<Person[]>([]);
+  const queryClient = useQueryClient();
   const [monthlyData, setMonthlyData] = useState<{ month: string; total: number }[]>([]);
   const [topPeople, setTopPeople] = useState<{ id: string; name: string; net: number }[]>([]);
   const [totals, setTotals] = useState({ owe: 0, owed: 0, net: 0 });
 
+  const { data: curs = [] } = useCurrencies();
+  const { data: allPeople = [] } = useAllPeople();
+  const { data: cats = [] } = useExpenseCategories();
+
+  const { data: rpcMonthly = [] } = useQuery({
+    queryKey: ["rpcMonthly", user?.id],
+    queryFn: async () => {
+      const { data } = await (supabase.rpc as any)("rpc_get_monthly_expenses");
+      return (data ?? []) as MonthlyRow[];
+    },
+    enabled: !!user,
+  });
+
+  const { data: rpcTop = [] } = useQuery({
+    queryKey: ["rpcTopDebtors", user?.id],
+    queryFn: async () => (await (supabase.rpc as any)("rpc_get_top_debtors", { p_limit: 8 })).data as TopDebtorRow[],
+    enabled: !!user,
+  });
+
+  const { data: rpcTotals = [] } = useQuery({
+    queryKey: ["rpcTotals", user?.id],
+    queryFn: async () => (await (supabase.rpc as any)("rpc_get_dashboard_totals")).data as TotalsRow[],
+    enabled: !!user,
+  });
+
   useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const [{ data: c }, { data: p }, { data: catsData }, { data: rpcMonthly }, { data: rpcTop }, { data: rpcTotals }] = await Promise.all([
-        supabase.from("currencies").select("*").order("is_base", { ascending: false }),
-        supabase.from("people").select("id,name"),
-        supabase.from("expense_categories").select("*"),
-        supabase.rpc("rpc_get_monthly_expenses"),
-        supabase.rpc("rpc_get_top_debtors", { p_limit: 8 }),
-        supabase.rpc("rpc_get_dashboard_totals"),
-      ]);
-      const curList = (c ?? []) as Cur[];
-      setCurs(curList);
-      setPeople((p ?? []) as Person[]);
-      setCats((catsData ?? []) as Cat[]);
+    const curList = curs;
+    const toBase = (amt: number, cid: string) => amt * (curList.find((x) => x.id === cid)?.rate ?? 1);
+    const mMap = new Map<string, number>();
+    (rpcMonthly ?? []).forEach((row: any) => {
+      const val = toBase(row.total, row.currency_id);
+      mMap.set(row.expense_month, (mMap.get(row.expense_month) ?? 0) + val);
+    });
+    const arr: { month: string; total: number }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const disp = `${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
+      arr.push({ month: disp, total: Math.round(mMap.get(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`) ?? 0) });
+    }
+    setMonthlyData(arr);
 
-      // Process monthly expenses from RPC
-      const toBase = (amt: number, cid: string) => amt * (curList.find((x) => x.id === cid)?.rate ?? 1);
-      
-      // Group by month
-      const mMap = new Map<string, number>();
-      (rpcMonthly ?? []).forEach((row: any) => {
-        const val = toBase(row.total, row.currency_id);
-        mMap.set(row.expense_month, (mMap.get(row.expense_month) ?? 0) + val);
+    setTopPeople((rpcTop ?? []).map((row: any) => ({
+      id: row.person_id,
+      name: allPeople.find((x) => x.id === row.person_id)?.name ?? "—",
+      net: Number(row.net_base),
+    })));
+
+    if (rpcTotals && rpcTotals.length > 0) {
+      setTotals({
+        owe: Number(rpcTotals[0].total_owe),
+        owed: Number(rpcTotals[0].total_owed),
+        net: Number(rpcTotals[0].net_balance),
       });
-
-      // Format last 6 months strictly
-      const arr: { month: string; total: number }[] = [];
-      const now = new Date();
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const yyyy_mm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        const disp = `${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
-        arr.push({ month: disp, total: Math.round(mMap.get(yyyy_mm) ?? 0) });
-      }
-      setMonthlyData(arr);
-
-      // Process top debtors from RPC
-      setTopPeople((rpcTop ?? []).map((row: any) => ({
-        id: row.person_id,
-        name: (p ?? []).find((x: any) => x.id === row.person_id)?.name ?? "—",
-        net: Number(row.net_base),
-      })));
-
-      if (rpcTotals && rpcTotals.length > 0) {
-        setTotals({
-          owe: Number(rpcTotals[0].total_owe),
-          owed: Number(rpcTotals[0].total_owed),
-          net: Number(rpcTotals[0].net_balance),
-        });
-      }
-    })();
-  }, [user]);
+    }
+  }, [rpcMonthly, rpcTop, rpcTotals, curs, allPeople]);
 
   const base = curs.find((c) => c.is_base) ?? curs[0];
+  const people = allPeople as Person[];
 
   const exportCSV = async () => {
     toast.loading("جارِ التصدير...");

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { UserPlus, Save } from "lucide-react";
+import { UserPlus, Save, BookUser } from "lucide-react";
 
 export interface PersonEditing {
   id: string;
@@ -60,6 +60,28 @@ export function PersonFormDialog({ open, onOpenChange, editing, onSuccess }: Pro
     }
   }, [open, editing]);
 
+  const pickContact = async () => {
+    try {
+      const supported = typeof navigator !== "undefined" && "contacts" in navigator && "ContactsManager" in window;
+      if (!supported) {
+        toast.error("ميزة جلب جهات الاتصال غير مدعومة في متصفحك أو جهازك الحالي (تعمل على هواتف أندرويد غالباً)");
+        return;
+      }
+      const contacts = await (navigator as any).contacts.select(["name", "tel"], { multiple: false });
+      if (contacts && contacts.length > 0) {
+        const contact = contacts[0];
+        if (contact.tel && contact.tel.length > 0) {
+          setPhone(contact.tel[0].replace(/[^0-9+]/g, ""));
+        }
+        if (contact.name && contact.name.length > 0 && !name.trim()) {
+          setName(contact.name[0]);
+        }
+      }
+    } catch (e) {
+      console.log("Contact picker error:", e);
+    }
+  };
+
   const submit = async () => {
     if (!user) return;
     const nm = name.trim();
@@ -104,7 +126,17 @@ export function PersonFormDialog({ open, onOpenChange, editing, onSuccess }: Pro
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-[12px]">رقم الجوال</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="9665xxxxxxxx" dir="ltr" maxLength={30} inputMode="tel" />
+              <div className="relative flex items-center mt-1">
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="9665xxxxxxxx" dir="ltr" maxLength={30} inputMode="tel" className="pl-9" />
+                <button
+                  type="button"
+                  onClick={pickContact}
+                  className="absolute left-1.5 p-1.5 text-muted-foreground hover:text-primary transition-colors bg-background rounded-md shadow-sm border"
+                  title="اختيار من جهات الاتصال"
+                >
+                  <BookUser className="size-4" />
+                </button>
+              </div>
             </div>
             <div>
               <Label className="text-[12px]">النوع</Label>

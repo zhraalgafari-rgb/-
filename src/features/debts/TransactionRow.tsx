@@ -1,3 +1,4 @@
+import React from "react";
 import { TrendingUp, TrendingDown, Pencil, Trash2, CheckCircle2, Clock } from "lucide-react";
 import { fmtMoney, fmtDate, fmtTime } from "@/lib/format";
 
@@ -33,7 +34,7 @@ function dueState(due: string | null | undefined, is_paid?: boolean): "none" | "
   return "none";
 }
 
-export function TransactionRow({ tx, currency, runningBalance, onEdit, onDelete, onPay }: Props) {
+export const TransactionRow = React.memo(function TransactionRow({ tx, currency, runningBalance, onEdit, onDelete, onPay }: Props) {
   const credit = tx.direction === "credit";
   const state = dueState(tx.due_date, tx.is_paid);
   
@@ -97,4 +98,4 @@ export function TransactionRow({ tx, currency, runningBalance, onEdit, onDelete,
       </div>
     </div>
   );
-}
+});

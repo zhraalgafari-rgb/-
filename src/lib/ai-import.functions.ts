@@ -4,7 +4,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 
-const MODEL = "google/gemini-3-flash-preview";
+const MODEL = "google/gemini-2.0-flash-exp:free";
 
 const MappingSchema = z.object({
   name: z.string().describe("اسم العمود الذي يحوي اسم العميل، فارغ إن لم يوجد"),

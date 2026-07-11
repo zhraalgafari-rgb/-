@@ -2,13 +2,10 @@ import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Plus } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, ClipboardList, Paperclip, BarChart3 } from "lucide-react";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
 import { toast } from "sonner";
 import { AddTransactionDialog } from "@/components/AddTransactionDialog";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -24,9 +21,9 @@ import { CustomerAttachments } from "@/features/attachments/CustomerAttachments"
 import { PaymentDialog } from "@/features/debts/PaymentDialog";
 import { buildShareText } from "@/lib/money/statements";
 import { EditPersonDialog } from "@/features/debts/person/EditPersonDialog";
-import type { PerCurrencyBalance, CurrencyLite, OpeningBalance } from "@/lib/money/balances";
-import { computeRunningByCurrency } from "@/lib/money/balances";
-import { ClipboardList, Paperclip, BarChart3 } from "lucide-react";
+import { computeRunningByCurrency, computeBalancesByCurrency } from "@/lib/money/balances";
+import { useCurrencies } from "@/hooks/useCurrencies";
+import { useAllPeople } from "@/hooks/usePeople";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
@@ -38,17 +35,10 @@ function PersonPage() {
   const { id } = useParams({ from: "/app/person/$id" });
   const { user } = useAuth();
   const nav = useNavigate();
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState<string | null>(null);
   const [editName, setEditName] = useState(false);
-  const [txs, setTxs] = useState<Tx[]>([]);
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [openings, setOpenings] = useState<OpeningBalance[]>([]);
-  const [rpcBalances, setRpcBalances] = useState<any[]>([]);
-  const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
-  const [company, setCompany] = useState<{ name: string | null; phone: string | null; address: string | null } | null>(null);
-  const [loading, setLoading] = useState(true);
   const [openAdd, setOpenAdd] = useState(false);
   const [editingTx, setEditingTx] = useState<Tx | null>(null);
   const [payingTx, setPayingTx] = useState<Tx | null>(null);
@@ -58,37 +48,72 @@ function PersonPage() {
   const [openAi, setOpenAi] = useState(false);
   const [tab, setTab] = useState<"timeline" | "attachments" | "insights">("timeline");
 
-  const load = async () => {
-    if (!user) return;
-    setLoading(true);
-    const [{ data: person }, { data: t }, { data: c }, { data: p }, { data: ob }, { data: co }, { data: rpcB }, { data: acc }] = await Promise.all([
-      supabase.from("people").select("name,phone").eq("id", id).single(),
-      supabase.from("transactions").select("*, allocations:payment_allocations!debt_tx_id(allocated_amount)").eq("person_id", id).order("transaction_date", { ascending: false }),
-      supabase.from("currencies").select("*").order("is_base", { ascending: false }),
-      supabase.from("people").select("id,name"),
-      supabase.from("opening_balances").select("currency_id,amount,direction").eq("person_id", id),
-      supabase.from("company_profile").select("name,phone,address").maybeSingle(),
-      supabase.rpc("rpc_get_person_balances" as any, { p_person_id: id }),
-      supabase.from("financial_accounts").select("*").order("is_default", { ascending: false }),
-    ]);
-    setName(person?.name ?? "");
-    setPhone(person?.phone ?? null);
-    setTxs((t ?? []) as Tx[]);
-    setCurrencies((c ?? []) as Currency[]);
-    setAccounts((acc ?? []) as Account[]);
-    setPeople((p ?? []) as { id: string; name: string }[]);
-    setOpenings((ob ?? []) as OpeningBalance[]);
-    setCompany((co as { name: string | null; phone: string | null; address: string | null } | null) ?? null);
-    setRpcBalances((rpcB ?? []) as any[]);
-    setLoading(false);
-  };
+  const { data: person } = useQuery({
+    queryKey: ["person", id],
+    queryFn: async () => {
+      const { data } = await supabase.from("people").select("name,phone").eq("id", id).maybeSingle();
+      return data;
+    },
+    enabled: !!id,
+  });
 
-  useEffect(() => { load(); }, [user, id]);
+  const { data: txs = [], isLoading: loadingTx } = useQuery({
+    queryKey: ["personTx", id],
+    queryFn: async () => {
+      const { data } = await (supabase.from("transactions") as any).select("*, allocations:payment_allocations!debt_tx_id(allocated_amount)").eq("person_id", id).order("transaction_date", { ascending: false });
+      return (data ?? []) as Tx[];
+    },
+    enabled: !!id,
+  });
+
+  const { data: currencies = [] } = useCurrencies();
+  const { data: allPeople = [] } = useAllPeople();
+
+  const { data: openings = [] } = useQuery({
+    queryKey: ["openings", id],
+    queryFn: async () => {
+      const { data } = await supabase.from("opening_balances").select("currency_id,amount,direction").eq("person_id", id);
+      return (data ?? []) as any[];
+    },
+    enabled: !!id,
+  });
+
+  const { data: company = null } = useQuery({
+    queryKey: ["companyProfile"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_profile").select("name,phone,address").maybeSingle();
+      return data as { name: string | null; phone: string | null; address: string | null } | null;
+    },
+  });
+
+  const { data: rpcBalances = [] } = useQuery({
+    queryKey: ["personBalances", id],
+    queryFn: async () => (await (supabase.rpc as any)("rpc_get_person_balances", { p_person_id: id })).data as any[],
+    enabled: !!id,
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: async () => {
+      const { data } = await (supabase.from as any)("financial_accounts").select("*").order("is_default", { ascending: false });
+      return (data ?? []) as Account[];
+    },
+  });
+
+  const people = allPeople.map(p => ({ id: p.id, name: p.name }));
+
+  useEffect(() => {
+    if (person) {
+      setName(person.name ?? "");
+      setPhone(person.phone ?? null);
+    }
+  }, [person]);
+
+  const loading = loadingTx;
 
   // Build per-currency balances from backend RPC (includes opening balances)
   const balancesByCurrency = useMemo(() => {
     if (rpcBalances.length === 0) {
-      // Fallback to frontend calculation if RPC not available
       return computeBalancesByCurrency(txs, currencies, openings);
     }
     return rpcBalances
@@ -105,7 +130,7 @@ function PersonPage() {
       })
       .filter(Boolean)
       .sort((a: any, b: any) => Number(b.currency.is_base) - Number(a.currency.is_base));
-  }, [rpcBalances, currencies, txs, openings]);
+  }, [rpcBalances, currencies, txs, openings]) as any[];
 
   // Used by AI reminder dialog — pick base currency balance (or first available)
   const primaryBalance = (balancesByCurrency as any[]).find((b) => b.currency.is_base) ?? (balancesByCurrency as any[])[0];
@@ -116,6 +141,12 @@ function PersonPage() {
     [txs, openings],
   );
 
+  const refetchPerson = () => {
+    queryClient.invalidateQueries({ queryKey: ["person"] });
+    queryClient.invalidateQueries({ queryKey: ["personTx"] });
+    queryClient.invalidateQueries({ queryKey: ["openings"] });
+    queryClient.invalidateQueries({ queryKey: ["personBalances"] });
+  };
 
   const delTx = async () => {
     if (!delTxId) return;
@@ -131,11 +162,11 @@ function PersonPage() {
         onClick: async () => {
           const { id: _id, allocations: _alloc, ...rest } = tx as any;
           await supabase.from("transactions").insert({ ...rest } as never);
-          toast.success("تم الاسترجاع"); load();
+          toast.success("تم الاسترجاع"); refetchPerson();
         },
       } : undefined,
     });
-    load();
+    refetchPerson();
   };
 
   const archivePerson = async () => {
@@ -244,7 +275,7 @@ function PersonPage() {
         open={openAdd}
         onOpenChange={(v) => { setOpenAdd(v); if (!v) setEditingTx(null); }}
         people={people} currencies={currencies} accounts={accounts}
-        onSuccess={load} defaultPersonId={id} editing={editingTx}
+        onSuccess={refetchPerson} defaultPersonId={id} editing={editingTx}
       />
 
       <PaymentDialog
@@ -252,7 +283,7 @@ function PersonPage() {
         onOpenChange={(v) => !v && setPayingTx(null)}
         debtTx={payingTx}
         accounts={accounts}
-        onSuccess={load}
+        onSuccess={refetchPerson}
       />
 
       <AiReminderDialog
@@ -269,7 +300,7 @@ function PersonPage() {
         personId={id}
         initialName={name}
         initialPhone={phone}
-        onSuccess={load}
+        onSuccess={refetchPerson}
       />
 
       <ConfirmDialog open={!!delTxId} onOpenChange={(v) => !v && setDelTxId(null)} title="حذف المعاملة" description="لا يمكن التراجع عن هذا الإجراء." destructive confirmLabel="حذف" onConfirm={delTx} />
@@ -278,3 +309,4 @@ function PersonPage() {
     </div>
   );
 }
+

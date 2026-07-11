@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "@tanstack/react-router";
 import { Phone, Clock, TrendingUp, TrendingDown } from "lucide-react";
 import { fmtMoney, fmtDate } from "@/lib/format";
@@ -28,7 +29,7 @@ interface Props {
 }
 
 /** Rich micro-card for a person — phone, last payment, totals. */
-export function PersonRow({ person, balance, index = 0, onEdit, onArchive, onDelete }: Props) {
+export const PersonRow = React.memo(function PersonRow({ person, balance, index = 0, onEdit, onArchive, onDelete }: Props) {
   const isCredit = balance.net >= 0;
   const settled = Math.abs(balance.net) < 0.001;
   const hasLast = !!balance.lastDate;
@@ -37,8 +38,7 @@ export function PersonRow({ person, balance, index = 0, onEdit, onArchive, onDel
     <Link
       to="/app/person/$id"
       params={{ id: person.id }}
-      className="block bg-card rounded-lg border shadow-card hover:shadow-elevated transition-all p-2 active:scale-[0.99] animate-in fade-in slide-in-from-bottom-1"
-      style={{ animationDelay: `${Math.min(index * 25, 250)}ms`, animationFillMode: "backwards" }}
+      className="block bg-card rounded-lg border shadow-card hover:shadow-elevated transition-all p-2 active:scale-[0.99]"
     >
       <div className="flex items-center gap-2">
         <div
@@ -108,4 +108,4 @@ export function PersonRow({ person, balance, index = 0, onEdit, onArchive, onDel
       )}
     </Link>
   );
-}
+});

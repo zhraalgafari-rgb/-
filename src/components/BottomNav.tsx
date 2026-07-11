@@ -1,9 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { Users, Wallet, BarChart3, Settings, Tags, PieChart, BellRing, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { BadgeCount } from "@/components/common/BadgeCount";
+import { useQuery } from "@tanstack/react-query";
 
 interface NavItem {
   to: string;
@@ -35,7 +35,6 @@ export function BottomNav() {
   const loc = useLocation();
   const path = loc.pathname;
   const { user } = useAuth();
-  const [pendingReminders, setPendingReminders] = useState(0);
 
   const isExpensesArea =
     path === "/app/expenses" || path.startsWith("/app/expenses/") ||
@@ -43,15 +42,18 @@ export function BottomNav() {
     path.startsWith("/app/insights");
   const items = isExpensesArea ? expensesItems : debtsItems;
 
-  useEffect(() => {
-    if (!user) return;
-    const today = new Date(); today.setHours(23, 59, 59, 999);
-    supabase.from("reminders")
-      .select("id", { count: "exact", head: true })
-      .eq("is_done", false)
-      .lte("due_date", today.toISOString())
-      .then(({ count }) => setPendingReminders(count ?? 0));
-  }, [user, path]);
+  const { data: pendingReminders = 0 } = useQuery({
+    queryKey: ["pendingReminders", user?.id],
+    queryFn: async () => {
+      const today = new Date(); today.setHours(23, 59, 59, 999);
+      const { count } = await supabase.from("reminders")
+        .select("id", { count: "exact", head: true })
+        .eq("is_done", false)
+        .lte("due_date", today.toISOString());
+      return count ?? 0;
+    },
+    enabled: !!user,
+  });
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-card/95 backdrop-blur border-t z-30 pb-[env(safe-area-inset-bottom)]" aria-label="التنقل الرئيسي">

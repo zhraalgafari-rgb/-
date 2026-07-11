@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
 import { TransactionTable } from "@/features/debts/TransactionTable";
 import { fmtMonthAr } from "@/lib/format";
 
@@ -15,9 +16,24 @@ interface Props {
 }
 
 export function PersonTimeline({ txs, currencies, running, onEdit, onDelete, onPay }: Props) {
+  const [visibleCount, setVisibleCount] = useState(30);
+  const visibleTxs = useMemo(() => txs.slice(0, visibleCount), [txs, visibleCount]);
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setVisibleCount((prev) => Math.min(prev + 30, txs.length));
+      }
+    }, { rootMargin: "400px" });
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [txs.length]);
+
   const grouped = useMemo(() => {
     const g = new Map<string, Tx[]>();
-    for (const t of txs) {
+    for (const t of visibleTxs) {
       const d = new Date(t.transaction_date);
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       const a = g.get(key) ?? [];
@@ -27,7 +43,7 @@ export function PersonTimeline({ txs, currencies, running, onEdit, onDelete, onP
       const [y, m] = key.split("-").map(Number);
       return { key, label: fmtMonthAr(new Date(y, m, 1)), items };
     });
-  }, [txs]);
+  }, [visibleTxs]);
 
   return (
     <div className="space-y-3">
@@ -48,6 +64,12 @@ export function PersonTimeline({ txs, currencies, running, onEdit, onDelete, onP
           />
         </div>
       ))}
+      
+      {visibleTxs.length > 0 && visibleTxs.length < txs.length && (
+        <div ref={loadMoreRef} className="h-20 flex items-center justify-center text-muted-foreground pb-20">
+          <Loader2 className="size-5 animate-spin" />
+        </div>
+      )}
     </div>
   );
 }

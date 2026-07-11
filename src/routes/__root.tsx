@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
 import { PinLockGate } from "@/components/PinLockGate";
 import { OnboardingGate } from "@/components/OnboardingGate";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/query-client";
 
 function NotFoundComponent() {
   return (
@@ -60,9 +62,9 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl">
-      <head><HeadContent /></head>
-      <body>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head suppressHydrationWarning><HeadContent /></head>
+      <body suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
@@ -72,15 +74,17 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <PinLockGate>
-          <OnboardingGate>
-            <Outlet />
-          </OnboardingGate>
-        </PinLockGate>
-        <Toaster position="top-center" richColors />
-      </AuthProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <PinLockGate>
+            <OnboardingGate>
+              <Outlet />
+            </OnboardingGate>
+          </PinLockGate>
+          <Toaster position="top-center" richColors />
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

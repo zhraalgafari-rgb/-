@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, ArchiveRestore, Trash2, Archive } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/app/archive")({ component: ArchivePage });
 
@@ -13,14 +13,16 @@ interface Person { id: string; name: string }
 
 function ArchivePage() {
   const { user } = useAuth();
-  const [items, setItems] = useState<Person[]>([]);
+  const queryClient = useQueryClient();
 
-  const load = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("people").select("id,name").eq("is_archived", true).order("name");
-    setItems((data ?? []) as Person[]);
-  };
-  useEffect(() => { load(); }, [user]);
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ["archivedPeople", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("people").select("id,name").eq("is_archived", true).order("name");
+      return (data ?? []) as Person[];
+    },
+    enabled: !!user,
+  });
 
   const restore = async (id: string) => {
     if (!user) return;
@@ -28,8 +30,11 @@ function ArchivePage() {
     const { logAudit } = await import("@/lib/audit");
     const person = items.find((p) => p.id === id);
     await logAudit(user.id, "restore", "person", id, { name: person?.name });
-    toast.success("تمت الاستعادة"); load();
+    toast.success("تمت الاستعادة");
+    queryClient.invalidateQueries({ queryKey: ["archivedPeople"] });
+    queryClient.invalidateQueries({ queryKey: ["activePeople"] });
   };
+
   const del = async (id: string, name: string) => {
     if (!user) return;
     if (!confirm(`حذف ${name} نهائياً؟ سيتم حذف كل معاملاته.`)) return;
@@ -39,13 +44,15 @@ function ArchivePage() {
     if (error) return toast.error(error.message);
     const { logAudit } = await import("@/lib/audit");
     await logAudit(user.id, "delete", "person", id, { name, from_archive: true });
-    toast.success("تم الحذف"); load();
+    toast.success("تم الحذف");
+    queryClient.invalidateQueries({ queryKey: ["archivedPeople"] });
+    queryClient.invalidateQueries({ queryKey: ["activePeople"] });
   };
 
   return (
     <div className="space-y-4">
-      <Link to="/app/settings" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowRight className="size-4" /> رجوع
+      <Link to="/app" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowRight className="size-4" /> الرئيسية
       </Link>
       <div className="flex items-center gap-2">
         <div className="size-10 rounded-xl bg-gradient-primary text-primary-foreground flex items-center justify-center shadow-glow">

@@ -13,35 +13,43 @@ const AUTOLOCK_KEY = "daftarak.autolock.minutes";
 const LAST_ACTIVE_KEY = "daftarak.lastActive";
 const ATTEMPTS_KEY = "daftarak.pin.attempts";
 
+const profileCache = new Map<string, { pin_hash: string | null; onboarded: boolean | null }>();
+
+function getCachedProfile(userId: string) {
+  if (!profileCache.has(userId)) {
+    profileCache.set(userId, { pin_hash: null, onboarded: null });
+  }
+  return profileCache.get(userId)!;
+}
+
 export function PinLockGate({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const [pinHash, setPinHash] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(true);
   const [pin, setPin] = useState("");
-  const [attempts, setAttempts] = useState(() => {
-    if (typeof localStorage === "undefined") return 0;
-    return Number(localStorage.getItem(ATTEMPTS_KEY) ?? "0") || 0;
-  });
+  const [attempts, setAttempts] = useState(() => typeof window !== "undefined" ? Number(localStorage.getItem(ATTEMPTS_KEY) ?? "0") || 0 : 0);
   const [waitMs, setWaitMs] = useState(0);
   const [checking, setChecking] = useState(true);
   const autolockMin = useRef(5);
 
   useEffect(() => {
     if (!user) { setChecking(false); return; }
+    let cancelled = false;
     (async () => {
-      const { data } = await supabase.from("profiles").select("pin_hash").eq("user_id", user.id).maybeSingle();
-      const h = data?.pin_hash ?? null;
-      setPinHash(h);
-      if (h && !isUnlocked()) setUnlocked(false);
+      const cache = getCachedProfile(user.id);
+      if (cache.pin_hash === null) {
+        const { data } = await supabase.from("profiles").select("pin_hash, onboarded").eq("user_id", user.id).maybeSingle();
+        cache.pin_hash = data?.pin_hash ?? null;
+        cache.onboarded = data?.onboarded ?? false;
+      }
+      if (cancelled) return;
+      setPinHash(cache.pin_hash);
+      if (cache.pin_hash && !isUnlocked()) setUnlocked(false);
       setChecking(false);
     })();
-    try {
-      const v = Number(localStorage.getItem(AUTOLOCK_KEY) ?? "5");
-      autolockMin.current = isNaN(v) ? 5 : v;
-    } catch { /* ignore */ }
+    return () => { cancelled = true; };
   }, [user]);
 
-  // Inactivity autolock: track activity, lock when hidden long enough or after interval
   useEffect(() => {
     if (!pinHash) return;
     const touch = () => { try { sessionStorage.setItem(LAST_ACTIVE_KEY, String(Date.now())); } catch { /* ignore */ } };
@@ -76,7 +84,6 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
     return () => clearInterval(t);
   }, [unlocked]);
 
-  // Auto-prompt biometric on lock screen show
   useEffect(() => {
     if (checking || unlocked || !pinHash) return;
     if (!biometricEnabled()) return;
@@ -84,8 +91,6 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checking, unlocked, pinHash]);
-
-  if (checking || unlocked || !pinHash || !user) return <>{children}</>;
 
   const press = (d: string) => {
     if (waitMs > 0) return;
@@ -97,7 +102,7 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
   const back = () => setPin((p) => p.slice(0, -1));
 
   const verify = async (val: string) => {
-    const h = await hashPin(val, user.id);
+    const h = await hashPin(val, user!.id);
     if (h === pinHash) {
       markUnlocked();
       clearLockTimer();
@@ -144,6 +149,8 @@ export function PinLockGate({ children }: { children: React.ReactNode }) {
   };
 
   const bioOn = biometricEnabled();
+
+  if (checking || unlocked || !pinHash || !user) return <>{children}</>;
 
   return (
     <div className="fixed inset-0 z-[100] bg-gradient-hero flex flex-col items-center justify-center text-white p-6">

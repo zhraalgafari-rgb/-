@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,9 +6,11 @@ import { useAuth } from "@/lib/auth";
 import { useNavigate } from "@tanstack/react-router";
 import { User, Receipt, Wallet, Loader2, Search } from "lucide-react";
 import { fmtMoney, fmtDate } from "@/lib/format";
+import { useQuery } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface Person { id: string; name: string; phone: string | null }
-interface Tx { id: string; person_id: string; amount: number; direction: string; details: string | null; transaction_date: string }
+interface Tx { id: string; person_id: string; amount: number; direction: string; details: string | null; transaction_date: string; people?: { name: string } | null }
 interface Exp { id: string; amount: number; note: string | null; expense_date: string; category_id: string | null }
 
 interface Props { open: boolean; onOpenChange: (v: boolean) => void }
@@ -21,43 +23,51 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
   const { user } = useAuth();
   const nav = useNavigate();
   const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [people, setPeople] = useState<Person[]>([]);
-  const [txs, setTxs] = useState<Tx[]>([]);
-  const [exps, setExps] = useState<Exp[]>([]);
-
-  useEffect(() => {
-    if (!open || !user) return;
-    setLoading(true);
-    (async () => {
-      const [{ data: p }, { data: t }, { data: e }] = await Promise.all([
-        supabase.from("people").select("id,name,phone").eq("is_archived", false).limit(500),
-        supabase.from("transactions").select("id,person_id,amount,direction,details,transaction_date").order("transaction_date", { ascending: false }).limit(500),
-        supabase.from("expenses").select("id,amount,note,expense_date,category_id").order("expense_date", { ascending: false }).limit(300),
-      ]);
-      setPeople((p ?? []) as Person[]);
-      setTxs((t ?? []) as Tx[]);
-      setExps((e ?? []) as Exp[]);
-      setLoading(false);
-    })();
-  }, [open, user]);
+  const debouncedQ = useDebounce(q, 300);
 
   useEffect(() => { if (!open) setQ(""); }, [open]);
 
-  const nq = normalize(q);
-  const results = useMemo(() => {
-    if (!nq) return { people: people.slice(0, 6), txs: [] as Tx[], exps: [] as Exp[] };
-    const fp = people.filter((p) => normalize(p.name).includes(nq) || (p.phone ?? "").includes(q)).slice(0, 6);
-    const ft = txs.filter((t) => normalize(t.details ?? "").includes(nq) || String(t.amount).includes(nq)).slice(0, 8);
-    const fe = exps.filter((e) => normalize(e.note ?? "").includes(nq) || String(e.amount).includes(nq)).slice(0, 6);
-    return { people: fp, txs: ft, exps: fe };
-  }, [nq, q, people, txs, exps]);
+  const nq = normalize(debouncedQ);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["globalSearch", nq, user?.id],
+    queryFn: async () => {
+      if (!nq) {
+        // Fetch recent defaults
+        const [{ data: p }, { data: t }, { data: e }] = await Promise.all([
+          supabase.from("people").select("id,name,phone").eq("is_archived", false).order("created_at", { ascending: false }).limit(6),
+          supabase.from("transactions").select("id,person_id,amount,direction,details,transaction_date,people(name)").order("transaction_date", { ascending: false }).limit(6),
+          supabase.from("expenses").select("id,amount,note,expense_date,category_id").order("expense_date", { ascending: false }).limit(6),
+        ]);
+        return { people: (p as Person[]) || [], txs: (t as Tx[]) || [], exps: (e as Exp[]) || [] };
+      }
+
+      // We'll search by trying to match ilike on text fields
+      // For amounts, if nq is numeric, we can also search amounts (though ilike on numbers is tricky, we can try casting or just skip if not a number, but Supabase standard postgrest doesn't let us easily OR across different types without a view/RPC).
+      // Let's use simple .ilike for names/details.
+      const searchPattern = `%${nq}%`;
+      const isNumeric = !isNaN(Number(nq)) && nq.trim() !== "";
+      const numFilter = isNumeric ? `amount.eq.${Number(nq)}` : null;
+
+      const txFilter = numFilter ? `details.ilike.${searchPattern},${numFilter}` : `details.ilike.${searchPattern}`;
+      const expFilter = numFilter ? `note.ilike.${searchPattern},${numFilter}` : `note.ilike.${searchPattern}`;
+
+      const [{ data: p }, { data: t }, { data: e }] = await Promise.all([
+        supabase.from("people").select("id,name,phone").eq("is_archived", false).or(`name.ilike.${searchPattern},phone.ilike.${searchPattern}`).limit(6),
+        supabase.from("transactions").select("id,person_id,amount,direction,details,transaction_date,people!inner(name)").or(txFilter).limit(8),
+        supabase.from("expenses").select("id,amount,note,expense_date,category_id").or(expFilter).limit(6),
+      ]);
+
+      return { people: (p as Person[]) || [], txs: (t as Tx[]) || [], exps: (e as Exp[]) || [] };
+    },
+    enabled: open && !!user,
+  });
+
+  const results = data || { people: [], txs: [], exps: [] };
 
   const goPerson = (id: string) => { onOpenChange(false); nav({ to: "/app/person/$id", params: { id } }); };
   const goTx = (t: Tx) => goPerson(t.person_id);
   const goExp = () => { onOpenChange(false); nav({ to: "/app/expenses" }); };
-
-  const personName = (id: string) => people.find((p) => p.id === id)?.name ?? "—";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,7 +79,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
             placeholder="ابحث عن شخص، مبلغ، أو وصف..."
             className="border-0 shadow-none focus-visible:ring-0 px-0 h-8 text-sm"
           />
-          {loading && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+          {isLoading && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto p-2 space-y-3">
@@ -83,14 +93,17 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
 
           {results.txs.length > 0 && (
             <Section title="المعاملات" icon={Wallet}>
-              {results.txs.map((t) => (
-                <Row
-                  key={t.id} onClick={() => goTx(t)}
-                  icon={<Wallet className={`size-3.5 ${t.direction === "credit" ? "text-emerald-600" : "text-rose-600"}`} />}
-                  title={`${personName(t.person_id)} — ${fmtMoney(Number(t.amount))}`}
-                  subtitle={`${fmtDate(t.transaction_date)}${t.details ? " · " + t.details : ""}`}
-                />
-              ))}
+              {results.txs.map((t) => {
+                const pName = t.people?.name || "—";
+                return (
+                  <Row
+                    key={t.id} onClick={() => goTx(t)}
+                    icon={<Wallet className={`size-3.5 ${t.direction === "credit" ? "text-emerald-600" : "text-rose-600"}`} />}
+                    title={`${pName} — ${fmtMoney(Number(t.amount))}`}
+                    subtitle={`${fmtDate(t.transaction_date)}${t.details ? " · " + t.details : ""}`}
+                  />
+                );
+              })}
             </Section>
           )}
 
@@ -104,10 +117,10 @@ export function GlobalSearchDialog({ open, onOpenChange }: Props) {
             </Section>
           )}
 
-          {!loading && nq && results.people.length + results.txs.length + results.exps.length === 0 && (
+          {!isLoading && nq && results.people.length + results.txs.length + results.exps.length === 0 && (
             <div className="text-center py-8 text-xs text-muted-foreground">لا توجد نتائج لـ "{q}"</div>
           )}
-          {!nq && !loading && (
+          {!nq && !isLoading && (
             <div className="px-2 pb-2 text-[11px] text-muted-foreground">ابدأ بالكتابة للبحث الفوري في كل بياناتك.</div>
           )}
         </div>

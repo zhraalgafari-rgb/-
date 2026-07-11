@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/PageHeader";
 import { ListSkeleton } from "@/components/Skeleton";
@@ -11,50 +12,49 @@ import { AlertTriangle, CheckCircle2, BellRing } from "lucide-react";
 import { generateReminderMessage } from "@/lib/ai.functions";
 import { ensureNotificationPermission, notify } from "@/lib/push";
 import { toast } from "sonner";
-
-export const Route = createFileRoute("/app/followup")({ component: FollowupPage });
-
 import { Bucket, buildBuckets } from "@/lib/money/followup";
 import { FollowupBucketCard } from "@/features/reminders/FollowupBucketCard";
 import { FollowupDraftDialog } from "@/features/reminders/FollowupDraftDialog";
+import { useActivePeople } from "@/hooks/usePeople";
+import { useCurrencies } from "@/hooks/useCurrencies";
+
+export const Route = createFileRoute("/app/followup")({ component: FollowupPage });
 
 function FollowupPage() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [buckets, setBuckets] = useState<Bucket[]>([]);
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"all" | "critical" | "late" | "soon">("all");
   const [draftFor, setDraftFor] = useState<Bucket | null>(null);
   const [draftText, setDraftText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
 
-  const load = async () => {
-    if (!user) return;
-    setLoading(true);
-    const [{ data: tx }, { data: pp }, { data: currencies }] = await Promise.all([
-      supabase.from("transactions").select("id,person_id,amount,direction,currency_id,due_date,is_paid,transaction_date,details").eq("is_paid", false),
-      supabase.from("people").select("id,name,phone,credit_limit").eq("is_archived", false),
-      supabase.from("currencies").select("id,name,symbol"),
-    ]);
-    const currencyMap = new Map<string, any>((currencies ?? []).map((c: any) => [c.id, c]));
-    const peopleMap = new Map<string, any>();
-    (pp ?? []).forEach((p) => peopleMap.set(p.id, p));
+  const { data: people = [] } = useActivePeople();
+  const { data: currencies = [] } = useCurrencies();
 
-    const list = buildBuckets(tx, peopleMap, currencyMap);
-    
-    list.sort((a, b) => {
-      const order = { critical: 0, late: 1, soon: 2, ok: 3 } as const;
-      if (order[a.severity] !== order[b.severity]) return order[a.severity] - order[b.severity];
-      return b.daysOverdue - a.daysOverdue;
-    });
-    setBuckets(list);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
+  const { data: buckets = [], isLoading } = useQuery({
+    queryKey: ["followupBuckets", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const [{ data: tx }] = await Promise.all([
+        supabase.from("transactions").select("id,person_id,amount,direction,currency_id,due_date,is_paid,transaction_date,details").eq("is_paid", false),
+      ]);
+      const currencyMap = new Map<string, any>((currencies ?? []).map((c: any) => [c.id, c]));
+      const peopleMap = new Map<string, any>();
+      (people).forEach((p) => peopleMap.set(p.id, p));
+      const list = buildBuckets(tx ?? [], peopleMap, currencyMap);
+      list.sort((a, b) => {
+        const order = { critical: 0, late: 1, soon: 2, ok: 3 } as const;
+        if (order[a.severity] !== order[b.severity]) return order[a.severity] - order[b.severity];
+        return b.daysOverdue - a.daysOverdue;
+      });
+      return list;
+    },
+    enabled: !!user && currencies.length > 0 && people.length > 0,
+  });
 
   // Local notification for critical/late buckets once per session
-  useEffect(() => {
-    if (loading || buckets.length === 0) return;
+  useMemo(() => {
+    if (isLoading || buckets.length === 0) return;
     const crit = buckets.filter((b) => b.severity === "critical" || b.severity === "late");
     if (crit.length === 0) return;
     const key = `followup-notified-${new Date().toDateString()}`;
@@ -63,7 +63,7 @@ function FollowupPage() {
     ensureNotificationPermission().then((ok) => {
       if (ok) notify("ديون متأخرة تستدعي المتابعة", `لديك ${crit.length} عميل متأخر — راجع صفحة المتابعة الذكية.`, "/app/followup", "followup-daily");
     });
-  }, [loading, buckets]);
+  }, [isLoading, buckets]);
 
   const counts = useMemo(() => ({
     all: buckets.length,
@@ -90,7 +90,6 @@ function FollowupPage() {
       });
       setDraftText(res.message);
     } catch (e: any) {
-      // Fallback offline template
       const dayPart = b.daysOverdue > 0 ? `\nتأخر السداد ${b.daysOverdue} يوم.` : "";
       setDraftText(`السلام عليكم ${b.person.name}،\nنود تذكيركم بمبلغ ${fmtMoney(b.net)} ${b.currency} المستحق علينا.${dayPart}\nنشكر تعاونكم — وفقكم الله.`);
       toast.message("استخدمنا قالب جاهز (الذكاء الاصطناعي غير متاح حالياً)");
@@ -147,7 +146,7 @@ function FollowupPage() {
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <ListSkeleton rows={4} />
       ) : filtered.length === 0 ? (
         <EmptyState icon={CheckCircle2} title="لا يوجد ما يستوجب المتابعة" description="جميع العملاء ضمن الحدود الآمنة. أحسنت!" />

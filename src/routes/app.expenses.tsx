@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Wallet } from "lucide-react";
 import { fmtMonthAr, monthRange } from "@/lib/format";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExpenseDialog } from "@/components/ExpenseDialog";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
@@ -14,49 +14,59 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MonthlyExpenseHeader } from "@/features/expenses/MonthlyExpenseHeader";
 import { CategoryBreakdown } from "@/features/expenses/CategoryBreakdown";
 import { ExpensesTable } from "@/features/expenses/ExpensesTable";
+import { useCurrencies } from "@/hooks/useCurrencies";
+import { useExpenseCategories } from "@/hooks/useExpenseCategories";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/app/expenses")({ component: ExpensesPage });
 
 interface Expense { id: string; amount: number; category_id: string | null; currency_id: string; note: string | null; expense_date: string; receipt_path: string | null }
-interface Category { id: string; name: string; icon: string; color: string }
-interface Currency { id: string; name: string; rate: number; is_base: boolean }
 interface Budget { id: string; category_id: string | null; amount: number; currency_id: string }
 interface Account { id: string; name: string; is_default: boolean }
 
 function ExpensesPage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [month, setMonth] = useState(new Date());
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [delTarget, setDelTarget] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState<string>("");
 
-  const load = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { start, end } = monthRange(month);
-    const [{ data: e }, { data: c }, { data: cu }, { data: b }, { data: acc }] = await Promise.all([
-      supabase.from("expenses").select("*").gte("expense_date", start.toISOString()).lt("expense_date", end.toISOString()).order("expense_date", { ascending: false }),
-      supabase.from("expense_categories").select("*").order("sort_order"),
-      supabase.from("currencies").select("*").order("is_base", { ascending: false }),
-      supabase.from("budgets").select("*"),
-      supabase.from("financial_accounts").select("*").order("is_default", { ascending: false }),
-    ]);
-    setExpenses((e ?? []) as Expense[]);
-    setCategories((c ?? []) as Category[]);
-    setCurrencies((cu ?? []) as Currency[]);
-    setBudgets((b ?? []) as Budget[]);
-    setAccounts((acc ?? []) as Account[]);
-    setLoading(false);
-  };
-  useEffect(() => { load(); }, [user, month]);
+  const { start, end } = monthRange(month);
+
+  const { data: expenses = [], isLoading: loadingExpenses } = useQuery({
+    queryKey: ["expenses", user?.id, start.toISOString(), end.toISOString()],
+    queryFn: async () => {
+      const { data } = await supabase.from("expenses").select("*").gte("expense_date", start.toISOString()).lt("expense_date", end.toISOString()).order("expense_date", { ascending: false });
+      return (data ?? []) as Expense[];
+    },
+    enabled: !!user,
+  });
+
+  const { data: categories = [] } = useExpenseCategories();
+  const { data: currencies = [] } = useCurrencies();
+
+  const { data: budgets = [], isLoading: loadingBudgets } = useQuery({
+    queryKey: ["budgets", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("budgets").select("*");
+      return (data ?? []) as Budget[];
+    },
+    enabled: !!user,
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("financial_accounts" as any).select("*").order("is_default", { ascending: false });
+      return (data ?? []) as unknown as Account[];
+    },
+    enabled: !!user,
+  });
+
+  const loading = loadingExpenses || loadingBudgets;
 
   const base = currencies.find((c) => c.is_base) ?? currencies[0];
 
@@ -96,12 +106,17 @@ function ExpensesPage() {
     return `${cat?.name ?? ""} ${e.note ?? ""}`.toLowerCase().includes(q.toLowerCase());
   }), [expenses, q, filterCat, categories]);
 
+  const refetchAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    queryClient.invalidateQueries({ queryKey: ["budgets"] });
+  };
+
   const del = async () => {
     if (!delTarget) return;
     const { error } = await supabase.from("expenses").delete().eq("id", delTarget);
     if (error) { toast.error(error.message); return; }
     toast.success("تم الحذف");
-    load();
+    refetchAll();
   };
 
   return (
@@ -157,7 +172,7 @@ function ExpensesPage() {
         categories={categories}
         accounts={accounts}
         editing={editing}
-        onSuccess={load}
+        onSuccess={refetchAll}
       />
 
       <ConfirmDialog
