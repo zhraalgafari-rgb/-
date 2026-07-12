@@ -24,6 +24,7 @@ import { EditPersonDialog } from "@/features/debts/person/EditPersonDialog";
 import { computeRunningByCurrency, computeBalancesByCurrency } from "@/lib/money/balances";
 import { useCurrencies } from "@/hooks/useCurrencies";
 import { useAllPeople } from "@/hooks/usePeople";
+import { usePersonData } from "@/hooks/usePersonData";
 
 export const Route = createFileRoute("/app/person/$id")({ component: PersonPage });
 
@@ -48,57 +49,9 @@ function PersonPage() {
   const [openAi, setOpenAi] = useState(false);
   const [tab, setTab] = useState<"timeline" | "attachments" | "insights">("timeline");
 
-  const { data: person } = useQuery({
-    queryKey: ["person", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("people").select("name,phone").eq("id", id).maybeSingle();
-      return data;
-    },
-    enabled: !!id,
-  });
-
-  const { data: txs = [], isLoading: loadingTx } = useQuery({
-    queryKey: ["personTx", id],
-    queryFn: async () => {
-      const { data } = await (supabase.from("transactions") as any).select("*, allocations:payment_allocations!debt_tx_id(allocated_amount)").eq("person_id", id).order("transaction_date", { ascending: false });
-      return (data ?? []) as Tx[];
-    },
-    enabled: !!id,
-  });
-
   const { data: currencies = [] } = useCurrencies();
   const { data: allPeople = [] } = useAllPeople();
-
-  const { data: openings = [] } = useQuery({
-    queryKey: ["openings", id],
-    queryFn: async () => {
-      const { data } = await supabase.from("opening_balances").select("currency_id,amount,direction").eq("person_id", id);
-      return (data ?? []) as any[];
-    },
-    enabled: !!id,
-  });
-
-  const { data: company = null } = useQuery({
-    queryKey: ["companyProfile"],
-    queryFn: async () => {
-      const { data } = await supabase.from("company_profile").select("name,phone,address").maybeSingle();
-      return data as { name: string | null; phone: string | null; address: string | null } | null;
-    },
-  });
-
-  const { data: rpcBalances = [] } = useQuery({
-    queryKey: ["personBalances", id],
-    queryFn: async () => (await (supabase.rpc as any)("rpc_get_person_balances", { p_person_id: id })).data as any[],
-    enabled: !!id,
-  });
-
-  const { data: accounts = [] } = useQuery({
-    queryKey: ["accounts"],
-    queryFn: async () => {
-      const { data } = await (supabase.from as any)("financial_accounts").select("*").order("is_default", { ascending: false });
-      return (data ?? []) as Account[];
-    },
-  });
+  const { person, txs, loadingTx, openings, company, rpcBalances, accounts } = usePersonData(id);
 
   const people = allPeople.map(p => ({ id: p.id, name: p.name }));
 

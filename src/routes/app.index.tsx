@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useDeferredValue, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -10,97 +10,52 @@ import { PersonFormDialog, type PersonEditing } from "@/components/PersonFormDia
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ListSkeleton } from "@/components/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
-import { processDueRecurring } from "@/lib/recurring";
 import { SearchBar } from "@/components/common/SearchBar";
 import { FabButton } from "@/components/common/FabButton";
 import { DebtsHeader } from "@/features/debts/DebtsHeader";
 import { MultiCurrencyTotals } from "@/features/debts/MultiCurrencyTotals";
-import { PersonRow, type PersonBalance } from "@/features/debts/PersonRow";
+import { PersonRow } from "@/features/debts/PersonRow";
 import { PersonTable } from "@/features/debts/PersonTable";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { toast } from "sonner";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDashboardData, type Person } from "@/hooks/useDashboardData";
+import { useDashboardFilter, type ViewMode } from "@/hooks/useDashboardFilter";
 
 export const Route = createFileRoute("/app/")({ component: DebtsHome });
 
-interface Currency { id: string; name: string; symbol: string; rate: number; is_base: boolean }
-interface Person { id: string; name: string; type: string; is_archived: boolean; avatar_color: string | null; phone: string | null; notes?: string | null; credit_limit?: number | null }
-
-type Filter = "all" | "credit" | "debit";
-type Sort = "active" | "name" | "recent";
-type ViewMode = "cards" | "table";
-
 function DebtsHome() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const [q, setQ] = useState("");
   const [openAdd, setOpenAdd] = useState(false);
   const [openAiChat, setOpenAiChat] = useState(false);
   const [openPerson, setOpenPerson] = useState(false);
   const [editingPerson, setEditingPerson] = useState<PersonEditing | null>(null);
   const [delPerson, setDelPerson] = useState<Person | null>(null);
   const [archivePerson, setArchivePerson] = useState<Person | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [sort, setSort] = useState<Sort>("active");
+  
   const [view, setView] = useState<ViewMode>(() => (typeof localStorage !== "undefined" && (localStorage.getItem("people_view") as ViewMode)) || "cards");
   useEffect(() => { try { localStorage.setItem("people_view", view); } catch { /* ignore */ } }, [view]);
 
-  const deferredQ = useDeferredValue(q);
-  const [visibleCount, setVisibleCount] = useState(30);
-
-  useEffect(() => {
-    setVisibleCount(30);
-  }, [deferredQ, filter, sort]);
-
-  const { data, isLoading: loading, refetch } = useQuery({
-    queryKey: ["dashboard", user?.id],
-    queryFn: async () => {
-      // Fire-and-forget background recurring process
-      if (user) processDueRecurring(user.id).catch(console.error);
-
-      const [{ data: p }, { data: dbBalances }, { data: c }] = await Promise.all([
-        supabase.from("people").select("*").eq("is_archived", false).order("created_at", { ascending: false }),
-        supabase.from("view_dashboard_person_balances" as any).select("*"),
-        supabase.from("currencies").select("*").order("is_base", { ascending: false }),
-      ]);
-
-      // RPC may not exist in all environments — fail silently
-      const rpcResult = await supabase.rpc("rpc_get_dashboard_totals" as any).then(r => r.data).catch(() => null);
-      const rpcTotals = rpcResult ?? [];
-      
-      const map = new Map<string, PersonBalance>();
-      if (dbBalances) {
-        for (const row of dbBalances as any[]) {
-          map.set(row.person_id, {
-            net: row.net,
-            count: row.tx_count,
-            lastDate: new Date(row.last_date).getTime(),
-            lastAmount: row.last_amount,
-            lastDirection: row.last_direction,
-            totalCredit: row.total_credit,
-            totalDebit: row.total_debit,
-          });
-        }
-      }
-
-      return {
-        people: (p ?? []) as Person[],
-        personBalances: map,
-        rpcTotals: rpcTotals as any[],
-        currencies: (c ?? []) as Currency[],
-      };
-    },
-    enabled: !!user,
-  });
-
+  const { data, isLoading: loading, refetch } = useDashboardData(user?.id);
   const pullDist = usePullToRefresh(() => refetch());
 
   const people = data?.people ?? [];
-  const personBalances = data?.personBalances ?? new Map<string, PersonBalance>();
+  const personBalances = data?.personBalances ?? new Map();
   const rpcTotalsData = data?.rpcTotals ?? [];
   const currencies = data?.currencies ?? [];
-  
   const baseCurrency = currencies.find((c) => c.is_base) ?? currencies[0];
+
+  const {
+    q, setQ,
+    deferredQ,
+    filter, setFilter,
+    sort, setSort,
+    filtered
+  } = useDashboardFilter(people, personBalances);
+
+  const [visibleCount, setVisibleCount] = useState(30);
+  useEffect(() => {
+    setVisibleCount(30);
+  }, [deferredQ, filter, sort]);
 
   const totals = useMemo(() => {
     let owe = 0, owed = 0;
@@ -109,27 +64,6 @@ function DebtsHome() {
     }
     return { owe, owed };
   }, [personBalances]);
-
-
-  const filtered = useMemo(() => {
-    const list = people.filter((p) => {
-      if (deferredQ && !p.name.toLowerCase().includes(deferredQ.toLowerCase())) return false;
-      const b = personBalances.get(p.id);
-      if (filter === "credit") return (b?.net ?? 0) > 0.001;
-      if (filter === "debit") return (b?.net ?? 0) < -0.001;
-      return true;
-    });
-    return list.sort((a, b) => {
-      const ba = personBalances.get(a.id);
-      const bb = personBalances.get(b.id);
-      if (sort === "name") return a.name.localeCompare(b.name, "ar");
-      if (sort === "recent") return (bb?.lastDate ?? 0) - (ba?.lastDate ?? 0);
-      // active: most-owed/owing first
-      const aActive = Math.abs(ba?.net ?? 0);
-      const bActive = Math.abs(bb?.net ?? 0);
-      return bActive - aActive;
-    });
-  }, [people, deferredQ, filter, sort, personBalances]);
 
 
   const visibleList = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
